@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner de Patrón Exclusivo con Realidad Aumentada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        h2 { color: #4CAF50; }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        video, canvas {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 2px solid #4CAF50;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        button:hover { background-color: #45a049; }
+        #resultadoID {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 15px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Validador de Sello con AR</h2>
+    <p>Apunta la cámara únicamente al diseño autorizado:</p>
+    
+    <div>
+        <video id="video" autoplay playsinline></video>
+    </div>
+    
+    <div>
+        <button id="captureBtn">🛡️ Validar y Mostrar Imagen</button>
+    </div>
+
+    <div>
+        <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+
+    <div id="resultadoID"></div>
+</div>
+
+<script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureBtn = document.getElementById('captureBtn');
+    const resultadoID = document.getElementById('resultadoID');
+
+    async function iniciarCamara() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            video.srcObject = stream;
+        } catch (err) {
+            alert("Error al acceder a la cámara: " + err);
+        }
+    }
+
+    iniciarCamara();
+
+    captureBtn.onclick = () => {
+        const ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const w = canvas.width;
+        const h = canvas.height;
+        const imgData = ctx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+
+        let centroX = w / 2;
+        let centroY = h / 2;
+        let radioCentral = Math.min(w, h) * 0.20;
+        const distanciaBase = radioCentral + 40;
+
+        const angulos = [0, 45, 90, 135, 180, 225, 270, 315];
+        let firmaSecuencia = [];
+
+        angulos.forEach(angulo => {
+            const rad = angulosToRad(angulo);
+            const x = Math.floor(centroX + distanciaBase * Math.cos(rad));
+            const y = Math.floor(centroY + distanciaBase * Math.sin(rad));
+
+            if (x >= 0 && x < w && y >= 0 && y < h) {
+                const index = (y * w + x) * 4;
+                const r = data[index];
+                const g = data[index + 1];
+                const b = data[index + 2];
+
+                firmaSecuencia.push(clasificarColor(r, g, b));
+
+                ctx.fillStyle = "red";
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                ctx.fill();
+            } else {
+                firmaSecuencia.push("X");
+            }
+        });
+
+        // Verificación estricta del diseño del sello (Franja roja arriba, azul abajo, ramas verdes)
+        const arriba = firmaSecuencia[2];     // 90 grados
+        const abajo = firmaSecuencia[6];      // 270 grados
+        const hayRamasVerdes = firmaSecuencia[1] === 'V' || firmaSecuencia[3] === 'V';
+
+        // 🔒 Filtro de exclusividad: Si no coincide exactamente, bloquea y no muestra imagen
+        if (arriba !== 'R' || abajo !== 'A' || !hayRamasVerdes) {
+            resultadoID.style.color = "#ff4d4d";
+            resultadoID.innerText = "❌ Error: Imagen no autorizada o código incorrecto.";
+            canvas.style.display = "block";
+            video.style.display = "none";
+            captureBtn.style.display = "none";
+            return;
+        }
+
+        // Si pasa la validación estricta, dibuja el ancla y superpone la imagen deseada
+        ctx.strokeStyle = "#00ff00";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(centroX, centroY, radioCentral, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        const fotoOverlay = new Image();
+        // Puedes cambiar esta fuente por el enlace web o el código Base64 de tu imagen
+        fotoOverlay.src = 'https://picsum.photos/200'; 
+        
+        fotoOverlay.onload = () => {
+            const tamañoFoto = radioCentral * 1.8;
+            const xPos = centroX - tamañoFoto / 2;
+            const yPos = centroY - tamañoFoto / 2;
+
+            ctx.drawImage(fotoOverlay, xPos, yPos, tamañoFoto, tamañoFoto);
+
+            ctx.strokeStyle = "#00ffcc";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(xPos, yPos, tamañoFoto, tamañoFoto);
+
+            resultadoID.style.color = "#00ffcc";
+            resultadoID.innerText = "¡Sello Autorizado y Reconocido con Éxito!";
+            
+            canvas.style.display = "block";
+            video.style.display = "none";
+            captureBtn.style.display = "none";
+        };
+    };
+
+    function angulosToRad(deg) {
+        return deg * Math.PI / 180;
+    }
+
+    function clasificarColor(r, g, b) {
+        if (r > 200 && g > 200 && b > 200) return "X";
+        if (g > r * 0.85 && g > b) return "V";
+        if (b > r * 0.75 && b > g) return "A";
+        if (r > g && r > b) return "R";
+        return "X";
+    }
+</script>
+
+</body>
+</html>
