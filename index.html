@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner de Patrón Fractal Generado</title>
+    <title>Escáner Fractal AR con Botón GPS</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -41,28 +41,62 @@
             margin-top: 15px;
             word-break: break-all;
         }
+        #gpsSection {
+            margin-top: 15px;
+            padding: 12px;
+            background: #222;
+            border-radius: 8px;
+            display: none;
+            border: 1px solid #444;
+        }
+        #gpsBtn {
+            background-color: #00ffcc;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #gpsBtn:hover { background-color: #00cca3; }
+        #gpsStatus {
+            font-size: 14px;
+            color: #aaaaaa;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Escáner Fractal AR (Definitivo)</h2>
-    <p id="instrucciones">Apunta la cámara del celular a la imagen fractal que descargaste.</p>
+    <h2>Escáner Fractal AR + GPS</h2>
+    <p id="instrucciones">Apunta la cámara a la imagen fractal para escanear.</p>
     
     <div class="view-container">
-        <!-- Video en vivo de la cámara trasera -->
+        <!-- Video en vivo -->
         <video id="video" autoplay playsinline></video>
-        <!-- Canvas oculto para procesar los colores del fractal -->
+        <!-- Canvas para procesamiento y RA -->
         <canvas id="processingCanvas" style="display:none;"></canvas>
     </div>
 
     <div id="status" style="color: #ffaa00;">⏳ Buscando patrón fractal en vivo...</div>
+    
+    <!-- Sección del botón de autorización GPS -->
+    <div id="gpsSection">
+        <p style="margin: 0; color: #fff; font-size: 14px;">¡Patrón verificado con éxito! Pulsa el botón para autorizar tu ubicación:</p>
+        <button id="gpsBtn" onclick="obtenerGPS()">📍 Autorizar y Registrar GPS</button>
+        <div id="gpsStatus">Esperando autorización del usuario...</div>
+    </div>
 </div>
 
 <script>
     const video = document.getElementById('video');
     const processingCanvas = document.getElementById('processingCanvas');
     const statusDiv = document.getElementById('status');
+    const gpsSection = document.getElementById('gpsSection');
+    const gpsStatusDiv = document.getElementById('gpsStatus');
     const instrucciones = document.getElementById('instrucciones');
 
     let scanning = true;
@@ -77,7 +111,6 @@
             video.onloadedmetadata = () => {
                 processingCanvas.width = video.videoWidth;
                 processingCanvas.height = video.videoHeight;
-                // Escaneo fluido cada 200 ms
                 scanInterval = setInterval(escanearPatronFractal, 200);
             };
         } catch (err) {
@@ -98,7 +131,6 @@
         const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;
 
-        // Muestreo por rejilla de 8x8 (64 puntos distribuidos en todo el fotograma)
         let totalPuntos = 0;
         let conteoRojo = 0;
         let conteoVerde = 0;
@@ -127,17 +159,14 @@
             }
         }
 
-        // Proporciones detectadas en la muestra
         let propRojo = conteoRojo / totalPuntos;
         let propVerde = conteoVerde / totalPuntos;
         let propAzul = conteoAzul / totalPuntos;
 
-        // Criterio de validación: El fractal generado contiene una alta densidad equilibrada de los 3 colores
         if (propRojo > 0.12 && propVerde > 0.12 && propAzul > 0.12) {
             scanning = false;
             clearInterval(scanInterval);
 
-            // Detener la cámara al reconocer con éxito
             const stream = video.srcObject;
             if (stream) stream.getTracks().forEach(track => track.stop());
 
@@ -145,21 +174,21 @@
         }
     }
 
-    // Clasificador afinado a la paleta exacta del generador fractal
     function clasificarColorFractal(r, g, b) {
-        if (r > 200 && g > 200 && b > 200) return "X"; // Zona clara / fondo neutro
-
-        if (r > g * 1.5 && r > b * 1.5) return "R"; // Rojo predominante
-        if (g > r * 1.2 && g > b) return "V";       // Verde predominante
-        if (b > r * 1.2 && b > g) return "A";       // Azul predominante
-
+        if (r > 200 && g > 200 && b > 200) return "X";
+        if (r > g * 1.5 && r > b * 1.5) return "R";
+        if (g > r * 1.2 && g > b) return "V";
+        if (b > r * 1.2 && b > g) return "A";
         return "X";
     }
 
     function activarRealidadAumentada(ctx, w, h, r, v, a) {
-        instrucciones.innerText = "¡Imagen Fractal Reconocida con Éxito!";
+        instrucciones.innerText = "¡Imagen Fractal Reconocida!";
         statusDiv.style.color = "#00ffcc";
         statusDiv.innerText = `Firma Válida [R: ${(r*100).toFixed(0)}% | V: ${(v*100).toFixed(0)}% | A: ${(a*100).toFixed(0)}%]`;
+
+        // Mostrar la sección interactiva con el botón obligatorio de GPS
+        gpsSection.style.display = "block";
 
         video.style.display = "none";
         processingCanvas.style.display = "block";
@@ -168,20 +197,43 @@
         let centroY = h / 2;
         let tamañoFoto = Math.min(w, h) * 0.45;
 
-        // Superponer la FOTO CUADRADA en Realidad Aumentada
         const fotoOverlay = new Image();
-        fotoOverlay.src = 'https://picsum.photos/300'; // Puedes cambiar esta URL por tu foto o logotipo final
+        fotoOverlay.src = 'https://picsum.photos/300';
         fotoOverlay.onload = () => {
             const xPos = centroX - tamañoFoto / 2;
             const yPos = centroY - tamañoFoto / 2;
 
             ctx.drawImage(fotoOverlay, xPos, yPos, tamañoFoto, tamañoFoto);
 
-            // Marco holográfico de éxito
             ctx.strokeStyle = "#00ffcc";
             ctx.lineWidth = 6;
             ctx.strokeRect(xPos, yPos, tamañoFoto, tamañoFoto);
         };
+    }
+
+    // Función que se ejecuta exclusivamente al hacer clic en el botón de autorización GPS
+    function obtenerGPS() {
+        if ("geolocation" in navigator) {
+            gpsStatusDiv.style.color = "#ffaa00";
+            gpsStatusDiv.innerText = "🛰️ Conectando con los satélites GPS...";
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude.toFixed(6);
+                    const lon = position.coords.longitude.toFixed(6);
+                    gpsStatusDiv.style.color = "#00ffcc";
+                    gpsStatusDiv.innerText = `📍 Ubicación Registrada: Lat ${lat}, Lon ${lon}`;
+                },
+                (error) => {
+                    gpsStatusDiv.style.color = "#ff4d4d";
+                    gpsStatusDiv.innerText = "❌ Permiso denegado o señal GPS no disponible.";
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        } else {
+            gpsStatusDiv.style.color = "#ff4d4d";
+            gpsStatusDiv.innerText = "❌ Tu navegador no soporta geolocalización.";
+        }
     }
 </script>
 
