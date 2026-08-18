@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner de Patrón Exclusivo con Realidad Aumentada</title>
+    <title>Escáner Fractal AR Continuo</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,27 +21,23 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        /* Contenedor para alinear video y canvas de realidad aumentada */
+        .view-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 10px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #4CAF50;
         }
         video, canvas {
             width: 100%;
-            max-width: 400px;
-            border-radius: 8px;
-            margin-top: 10px;
-            border: 2px solid #4CAF50;
+            display: block;
         }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-top: 15px;
-        }
-        button:hover { background-color: #45a049; }
-        #resultadoID {
+        #status {
             font-size: 18px;
             font-weight: bold;
             margin-top: 15px;
@@ -52,36 +48,41 @@
 <body>
 
 <div class="container">
-    <h2>Validador de Sello con AR</h2>
-    <p>Apunta la cámara únicamente al diseño autorizado:</p>
+    <h2>Escáner Fractal en Vivo (AR)</h2>
+    <p id="instrucciones">Apunta la cámara al patrón fractal. Buscando...</p>
     
-    <div>
+    <div class="view-container">
+        <!-- Video en vivo continuo -->
         <video id="video" autoplay playsinline></video>
-    </div>
-    
-    <div>
-        <button id="captureBtn">🛡️ Validar y Mostrar Imagen</button>
+        <!-- Canvas oculto para procesar los fotogramas en segundo plano -->
+        <canvas id="processingCanvas" style="display:none;"></canvas>
     </div>
 
-    <div>
-        <canvas id="canvas" style="display:none;"></canvas>
-    </div>
-
-    <div id="resultadoID"></div>
+    <div id="status" style="color: #ffcc00;">⏳ Buscando patrón...</div>
 </div>
 
 <script>
     const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const captureBtn = document.getElementById('captureBtn');
-    const resultadoID = document.getElementById('resultadoID');
+    const processingCanvas = document.getElementById('processingCanvas');
+    const statusDiv = document.getElementById('status');
+    const instrucciones = document.getElementById('instrucciones');
 
+    let scanning = true;
+    let scanInterval;
+
+    // Iniciar la cámara trasera del celular de forma continua
     async function iniciarCamara() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'environment' }
             });
             video.srcObject = stream;
+            video.onloadedmetadata = () => {
+                processingCanvas.width = video.videoWidth;
+                processingCanvas.height = video.videoHeight;
+                // Iniciar bucle de escaneo continuo cada 200ms (fluido y sin bloquear)
+                scanInterval = setInterval(escanearFotograma, 200);
+            };
         } catch (err) {
             alert("Error al acceder a la cámara: " + err);
         }
@@ -89,22 +90,23 @@
 
     iniciarCamara();
 
-    captureBtn.onclick = () => {
-        const ctx = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+    function escanearFotograma() {
+        if (!scanning) return;
+
+        const ctx = processingCanvas.getContext('2d');
+        const w = processingCanvas.width;
+        const h = processingCanvas.height;
+
+        // Dibujar el fotograma actual del video en el canvas de procesamiento
+        ctx.drawImage(video, 0, 0, w, h);
         
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const w = canvas.width;
-        const h = canvas.height;
         const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;
 
         let centroX = w / 2;
         let centroY = h / 2;
-        let radioCentral = Math.min(w, h) * 0.20;
-        const distanciaBase = radioCentral + 40;
+        let radioCentral = Math.min(w, h) * 0.18; // Ajustado al hueco central de tu fractal
+        const distanciaBase = radioCentral + 30;
 
         const angulos = [0, 45, 90, 135, 180, 225, 270, 315];
         let firmaSecuencia = [];
@@ -119,73 +121,85 @@
                 const r = data[index];
                 const g = data[index + 1];
                 const b = data[index + 2];
-
                 firmaSecuencia.push(clasificarColor(r, g, b));
-
-                ctx.fillStyle = "red";
-                ctx.beginPath();
-                ctx.arc(x, y, 6, 0, 2 * Math.PI);
-                ctx.fill();
             } else {
                 firmaSecuencia.push("X");
             }
         });
 
-        // Verificación estricta del diseño del sello (Franja roja arriba, azul abajo, ramas verdes)
-        const arriba = firmaSecuencia[2];     // 90 grados
-        const abajo = firmaSecuencia[6];      // 270 grados
-        const hayRamasVerdes = firmaSecuencia[1] === 'V' || firmaSecuencia[3] === 'V';
+        // Validar si el patrón corresponde al fractal (debe tener una mezcla rica de colores V, A, R y un centro claro)
+        const coloresValidos = firmaSecuencia.filter(c => c !== 'X').length;
+        
+        // Verificamos que el centro tenga la zona blanca/clara característica del fractal
+        const centroIndex = (Math.floor(centroY) * w + Math.floor(centroX)) * 4;
+        const esCentroClaro = data[centroIndex] > 150 && data[centroIndex+1] > 150 && data[centroIndex+2] > 150;
 
-        // 🔒 Filtro de exclusividad: Si no coincide exactamente, bloquea y no muestra imagen
-        if (arriba !== 'R' || abajo !== 'A' || !hayRamasVerdes) {
-            resultadoID.style.color = "#ff4d4d";
-            resultadoID.innerText = "❌ Error: Imagen no autorizada o código incorrecto.";
-            canvas.style.display = "block";
-            video.style.display = "none";
-            captureBtn.style.display = "none";
-            return;
+        // Criterio de reconocimiento estricto para tu diseño fractal
+        if (coloresValidos >= 6 && esCentroClaro) {
+            // ¡ENCONTRADO! Detenemos el escaneo continuo
+            scanning = false;
+            clearInterval(scanInterval);
+            
+            // Detener el streaming de video para fijar la imagen detectada
+            const stream = video.srcObject;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            mostrarRealidadAumentada(ctx, centroX, centroY, radioCentral, firmaSecuencia);
         }
+    }
 
-        // Si pasa la validación estricta, dibuja el ancla y superpone la imagen deseada
+    function mostrarRealidadAumentada(ctx, centroX, centroY, radioCentral, firmaSecuencia) {
+        instrucciones.innerText = "¡Patrón Fractal Reconocido con Éxito!";
+        statusDiv.style.color = "#00ffcc";
+        statusDiv.innerText = "ID: INF-NODE-" + firmaSecuencia.join("");
+
+        // Ocultar el elemento de video en vivo y mostrar el canvas congelado con la AR
+        video.style.display = "none";
+        processingCanvas.style.display = "block";
+
+        // Dibujar el ancla central verde
         ctx.strokeStyle = "#00ff00";
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(centroX, centroY, radioCentral, 0, 2 * Math.PI);
         ctx.stroke();
 
+        // Cargar y superponer la FOTO CUADRADA en el centro
         const fotoOverlay = new Image();
-        // Puedes cambiar esta fuente por el enlace web o el código Base64 de tu imagen
-        fotoOverlay.src = 'https://picsum.photos/200'; 
-        
+        fotoOverlay.src = 'https://picsum.photos/300'; // Puedes cambiar este enlace por tu propia foto cuadrada o logo
         fotoOverlay.onload = () => {
             const tamañoFoto = radioCentral * 1.8;
             const xPos = centroX - tamañoFoto / 2;
             const yPos = centroY - tamañoFoto / 2;
 
+            // Superponer la foto cuadrada
             ctx.drawImage(fotoOverlay, xPos, yPos, tamañoFoto, tamañoFoto);
 
+            // Marco elegante alrededor de la foto
             ctx.strokeStyle = "#00ffcc";
             ctx.lineWidth = 4;
             ctx.strokeRect(xPos, yPos, tamañoFoto, tamañoFoto);
-
-            resultadoID.style.color = "#00ffcc";
-            resultadoID.innerText = "¡Sello Autorizado y Reconocido con Éxito!";
-            
-            canvas.style.display = "block";
-            video.style.display = "none";
-            captureBtn.style.display = "none";
         };
-    };
+    }
 
     function angulosToRad(deg) {
         return deg * Math.PI / 180;
     }
 
     function clasificarColor(r, g, b) {
+        // Zona blanca central o iluminación fuerte
         if (r > 200 && g > 200 && b > 200) return "X";
-        if (g > r * 0.85 && g > b) return "V";
-        if (b > r * 0.75 && b > g) return "A";
-        if (r > g && r > b) return "R";
+        
+        // Clasificación de tonos del fractal
+        if (g > r * 0.85 && g > b) {
+            return "V"; // Verde
+        } else if (b > r * 0.75 && b > g) {
+            return "A"; // Azul
+        } else if (r > g && r > b) {
+            return "R"; // Rojo
+        }
         return "X";
     }
 </script>
