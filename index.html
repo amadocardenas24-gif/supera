@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner Fractal Universal por Autosimilitud</title>
+    <title>Escáner de Patrón Fractal Generado</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            background-color: #121212;
+            background-color: #0b0b0b;
             color: #ffffff;
             margin: 0;
             padding: 20px;
         }
-        h2 { color: #4CAF50; }
+        h2 { color: #00ffcc; }
         .container {
             max-width: 600px;
             margin: auto;
-            background: #1e1e1e;
+            background: #161616;
             padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 20px rgba(0,255,204,0.2);
         }
         .view-container {
             position: relative;
@@ -29,14 +29,14 @@
             margin: 10px auto;
             border-radius: 8px;
             overflow: hidden;
-            border: 2px solid #4CAF50;
+            border: 2px solid #00ffcc;
         }
         video, canvas {
             width: 100%;
             display: block;
         }
         #status {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             margin-top: 15px;
             word-break: break-all;
@@ -46,17 +46,17 @@
 <body>
 
 <div class="container">
-    <h2>Escáner Fractal Universal (AR)</h2>
-    <p id="instrucciones">Apunta a cualquier parte del fractal. Buscando autosimilitud...</p>
+    <h2>Escáner Fractal AR (Definitivo)</h2>
+    <p id="instrucciones">Apunta la cámara del celular a la imagen fractal que descargaste.</p>
     
     <div class="view-container">
-        <!-- Video en vivo continuo -->
+        <!-- Video en vivo de la cámara trasera -->
         <video id="video" autoplay playsinline></video>
-        <!-- Canvas oculto para procesamiento por rejilla -->
+        <!-- Canvas oculto para procesar los colores del fractal -->
         <canvas id="processingCanvas" style="display:none;"></canvas>
     </div>
 
-    <div id="status" style="color: #ffcc00;">⏳ Analizando textura fractal...</div>
+    <div id="status" style="color: #ffaa00;">⏳ Buscando patrón fractal en vivo...</div>
 </div>
 
 <script>
@@ -77,8 +77,8 @@
             video.onloadedmetadata = () => {
                 processingCanvas.width = video.videoWidth;
                 processingCanvas.height = video.videoHeight;
-                // Escaneo continuo cada 200ms
-                scanInterval = setInterval(escanearTexturaFractalUniversal, 200);
+                // Escaneo fluido cada 200 ms
+                scanInterval = setInterval(escanearPatronFractal, 200);
             };
         } catch (err) {
             alert("Error al acceder a la cámara: " + err);
@@ -87,7 +87,7 @@
 
     iniciarCamara();
 
-    function escanearTexturaFractalUniversal() {
+    function escanearPatronFractal() {
         if (!scanning) return;
 
         const ctx = processingCanvas.getContext('2d');
@@ -98,15 +98,14 @@
         const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;
 
-        // 🌐 MUESTREO POR REJILLA UNIVERSAL (Grid Sampling)
-        // En lugar de un solo centro, evaluamos una malla de 6x6 (36 puntos) repartidos por todo el fotograma
+        // Muestreo por rejilla de 8x8 (64 puntos distribuidos en todo el fotograma)
         let totalPuntos = 0;
+        let conteoRojo = 0;
         let conteoVerde = 0;
         let conteoAzul = 0;
-        let conteoRojo = 0;
 
-        const filas = 6;
-        const columnas = 6;
+        const filas = 8;
+        const columnas = 8;
         const pasoX = Math.floor(w / (columnas + 1));
         const pasoY = Math.floor(h / (filas + 1));
 
@@ -120,50 +119,58 @@
                 let g = data[index + 1];
                 let b = data[index + 2];
 
-                let clasificacion = clasificarColorHSV(r, g, b);
-                if (clasificacion === 'V') conteoVerde++;
-                if (clasificacion === 'A') conteoAzul++;
-                if (clasificacion === 'R') conteoRojo++;
+                let color = clasificarColorFractal(r, g, b);
+                if (color === 'R') conteoRojo++;
+                if (color === 'V') conteoVerde++;
+                if (color === 'A') conteoAzul++;
                 totalPuntos++;
             }
         }
 
-        // 🔒 CRITERIO FRACTAL UNIVERSAL: 
-        // Si el fotograma contiene una mezcla equilibrada de los tres colores (propio de la teselación fractal), 
-        // sin importar qué zona específica estés enfocando, se valida el reconocimiento.
-        let proporcionVerde = conteoVerde / totalPuntos;
-        let proporcionAzul = conteoAzul / totalPuntos;
-        let proporcionRojo = conteoRojo / totalPuntos;
+        // Proporciones detectadas en la muestra
+        let propRojo = conteoRojo / totalPuntos;
+        let propVerde = conteoVerde / totalPuntos;
+        let propAzul = conteoAzul / totalPuntos;
 
-        // Umbrales de tolerancia para reconocer la textura fractal en cualquier parte
-        if (proporcionVerde > 0.15 && proporcionAzul > 0.15 && proporcionRojo > 0.15) {
+        // Criterio de validación: El fractal generado contiene una alta densidad equilibrada de los 3 colores
+        if (propRojo > 0.12 && propVerde > 0.12 && propAzul > 0.12) {
             scanning = false;
             clearInterval(scanInterval);
 
-            // Detener stream de video
+            // Detener la cámara al reconocer con éxito
             const stream = video.srcObject;
             if (stream) stream.getTracks().forEach(track => track.stop());
 
-            activarRealidadAumentadaUniversal(ctx, w, h, conteoVerde, conteoAzul, conteoRojo);
+            activarRealidadAumentada(ctx, w, h, propRojo, propVerde, propAzul);
         }
     }
 
-    function activarRealidadAumentadaUniversal(ctx, w, h, v, a, r) {
-        instrucciones.innerText = "¡Textura Fractal Reconocida en Cualquier Punto!";
+    // Clasificador afinado a la paleta exacta del generador fractal
+    function clasificarColorFractal(r, g, b) {
+        if (r > 200 && g > 200 && b > 200) return "X"; // Zona clara / fondo neutro
+
+        if (r > g * 1.5 && r > b * 1.5) return "R"; // Rojo predominante
+        if (g > r * 1.2 && g > b) return "V";       // Verde predominante
+        if (b > r * 1.2 && b > g) return "A";       // Azul predominante
+
+        return "X";
+    }
+
+    function activarRealidadAumentada(ctx, w, h, r, v, a) {
+        instrucciones.innerText = "¡Imagen Fractal Reconocida con Éxito!";
         statusDiv.style.color = "#00ffcc";
-        statusDiv.innerText = `Autosimilitud Verificada [V:${v} | A:${a} | R:${r}]`;
+        statusDiv.innerText = `Firma Válida [R: ${(r*100).toFixed(0)}% | V: ${(v*100).toFixed(0)}% | A: ${(a*100).toFixed(0)}%]`;
 
         video.style.display = "none";
         processingCanvas.style.display = "block";
 
-        // Coordenadas centrales del fotograma congelado para ubicar la AR
         let centroX = w / 2;
         let centroY = h / 2;
-        let tamañoFoto = Math.min(w, h) * 0.4;
+        let tamañoFoto = Math.min(w, h) * 0.45;
 
-        // Superponer la FOTO CUADRADA en Realidad Aumentada exactamente en el centro de la vista actual
+        // Superponer la FOTO CUADRADA en Realidad Aumentada
         const fotoOverlay = new Image();
-        fotoOverlay.src = 'https://picsum.photos/300'; // Puedes cambiar esta URL por tu propia foto o logotipo
+        fotoOverlay.src = 'https://picsum.photos/300'; // Puedes cambiar esta URL por tu foto o logotipo final
         fotoOverlay.onload = () => {
             const xPos = centroX - tamañoFoto / 2;
             const yPos = centroY - tamañoFoto / 2;
@@ -172,34 +179,9 @@
 
             // Marco holográfico de éxito
             ctx.strokeStyle = "#00ffcc";
-            ctx.lineWidth = 5;
+            ctx.lineWidth = 6;
             ctx.strokeRect(xPos, yPos, tamañoFoto, tamañoFoto);
         };
-    }
-
-    // Clasificador cromático HSV robusto frente a cambios de luz
-    function clasificarColorHSV(r, g, b) {
-        let rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
-        let max = Math.max(rNorm, gNorm, bNorm);
-        let min = Math.min(rNorm, gNorm, bNorm);
-        let diff = max - min;
-        let h = 0, s = max === 0 ? 0 : diff / max, v = max;
-
-        if (diff !== 0) {
-            if (max === rNorm) h = ((gNorm - bNorm) / diff) % 6;
-            else if (max === gNorm) h = (bNorm - rNorm) / diff + 2;
-            else h = (rNorm - gNorm) / diff + 4;
-            h = Math.round(h * 60);
-            if (h < 0) h += 360;
-        }
-
-        if (s < 0.15 || v < 0.2) return "X"; // Descartar neutros / oscuros
-
-        if (h >= 35 && h <= 85) return "V";      // Verde
-        else if (h > 85 && h < 150) return "A";  // Azul
-        else if (h >= 330 || h <= 15) return "R";// Rojo
-        
-        return "X";
     }
 </script>
 
