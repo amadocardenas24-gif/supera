@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner Fractal AR Continuo</title>
+    <title>Escáner de Patrón Fractal Áureo - Alta Precisión</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,9 +21,7 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            position: relative;
         }
-        /* Contenedor para alinear video y canvas de realidad aumentada */
         .view-container {
             position: relative;
             width: 100%;
@@ -48,17 +46,17 @@
 <body>
 
 <div class="container">
-    <h2>Escáner Fractal en Vivo (AR)</h2>
-    <p id="instrucciones">Apunta la cámara al patrón fractal. Buscando...</p>
+    <h2>Validador Fractal Multinivel</h2>
+    <p id="instrucciones">Apunta la cámara al patrón fractal. Analizando en vivo...</p>
     
     <div class="view-container">
         <!-- Video en vivo continuo -->
         <video id="video" autoplay playsinline></video>
-        <!-- Canvas oculto para procesar los fotogramas en segundo plano -->
+        <!-- Canvas oculto para procesamiento matemático -->
         <canvas id="processingCanvas" style="display:none;"></canvas>
     </div>
 
-    <div id="status" style="color: #ffcc00;">⏳ Buscando patrón...</div>
+    <div id="status" style="color: #ffcc00;">⏳ Buscando firma geométrica...</div>
 </div>
 
 <script>
@@ -70,7 +68,6 @@
     let scanning = true;
     let scanInterval;
 
-    // Iniciar la cámara trasera del celular de forma continua
     async function iniciarCamara() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -80,8 +77,8 @@
             video.onloadedmetadata = () => {
                 processingCanvas.width = video.videoWidth;
                 processingCanvas.height = video.videoHeight;
-                // Iniciar bucle de escaneo continuo cada 200ms (fluido y sin bloquear)
-                scanInterval = setInterval(escanearFotograma, 200);
+                // Bucle de escaneo fluido cada 200 ms
+                scanInterval = setInterval(escanearFotogramaMatricial, 200);
             };
         } catch (err) {
             alert("Error al acceder a la cámara: " + err);
@@ -90,94 +87,94 @@
 
     iniciarCamara();
 
-    function escanearFotograma() {
+    function escanearFotogramaMatricial() {
         if (!scanning) return;
 
         const ctx = processingCanvas.getContext('2d');
         const w = processingCanvas.width;
         const h = processingCanvas.height;
 
-        // Dibujar el fotograma actual del video en el canvas de procesamiento
         ctx.drawImage(video, 0, 0, w, h);
-        
         const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;
 
         let centroX = w / 2;
         let centroY = h / 2;
-        let radioCentral = Math.min(w, h) * 0.18; // Ajustado al hueco central de tu fractal
-        const distanciaBase = radioCentral + 30;
+        let radioCentral = Math.min(w, h) * 0.18; // Estimación del núcleo central blanco
 
+        // Validar que el centro sea una oquedad clara/blanca
+        const centroIndex = (Math.floor(centroY) * w + Math.floor(centroX)) * 4;
+        const esCentroClaro = data[centroIndex] > 160 && data[centroIndex+1] > 160 && data[centroIndex+2] > 160;
+
+        if (!esCentroClaro) return; // Si no hay centro claro, descartar fotograma rápido
+
+        // 🌟 MATRIZ MULTINIVEL (3 Anillos concéntricos × 8 Ángulos = 24 puntos de muestreo)
         const angulos = [0, 45, 90, 135, 180, 225, 270, 315];
-        let firmaSecuencia = [];
+        const multiplicadores_radio = [1.2, 1.6, 2.1]; 
+        let firmaMatriz = [];
 
-        angulos.forEach(angulo => {
-            const rad = angulosToRad(angulo);
-            const x = Math.floor(centroX + distanciaBase * Math.cos(rad));
-            const y = Math.floor(centroY + distanciaBase * Math.sin(rad));
+        multiplicadores_radio.forEach(mult => {
+            let distancia = radioCentral * mult;
+            angulos.forEach(angulo => {
+                let rad = angulosToRad(angulo);
+                let x = Math.floor(centroX + distancia * Math.cos(rad));
+                let y = Math.floor(centroY + distancia * Math.sin(rad));
 
-            if (x >= 0 && x < w && y >= 0 && y < h) {
-                const index = (y * w + x) * 4;
-                const r = data[index];
-                const g = data[index + 1];
-                const b = data[index + 2];
-                firmaSecuencia.push(clasificarColor(r, g, b));
-            } else {
-                firmaSecuencia.push("X");
-            }
+                if (x >= 0 && x < w && y >= 0 && y < h) {
+                    let index = (y * w + x) * 4;
+                    let r = data[index];
+                    let g = data[index + 1];
+                    let b = data[index + 2];
+                    firmaMatriz.push(clasificarColorHSV(r, g, b));
+                } else {
+                    firmaMatriz.push("X");
+                }
+            });
         });
 
-        // Validar si el patrón corresponde al fractal (debe tener una mezcla rica de colores V, A, R y un centro claro)
-        const coloresValidos = firmaSecuencia.filter(c => c !== 'X').length;
-        
-        // Verificamos que el centro tenga la zona blanca/clara característica del fractal
-        const centroIndex = (Math.floor(centroY) * w + Math.floor(centroX)) * 4;
-        const esCentroClaro = data[centroIndex] > 150 && data[centroIndex+1] > 150 && data[centroIndex+2] > 150;
+        // Conteo estricto de la distribución cromática del fractal
+        let totalVerde = firmaMatriz.filter(c => c === 'V').length;
+        let totalAzul = firmaMatriz.filter(c => c === 'A').length;
+        let totalRojo = firmaMatriz.filter(c => c === 'R').length;
 
-        // Criterio de reconocimiento estricto para tu diseño fractal
-        if (coloresValidos >= 6 && esCentroClaro) {
-            // ¡ENCONTRADO! Detenemos el escaneo continuo
+        // 🔒 CRITERIO DE AUTENTICIDAD ESTRICTO: Debe contener suficientes muestras de los 3 colores en los anillos
+        if (totalVerde >= 3 && totalAzul >= 3 && totalRojo >= 3) {
             scanning = false;
             clearInterval(scanInterval);
-            
-            // Detener el streaming de video para fijar la imagen detectada
-            const stream = video.srcObject;
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
 
-            mostrarRealidadAumentada(ctx, centroX, centroY, radioCentral, firmaSecuencia);
+            // Apagar la cámara al reconocer
+            const stream = video.srcObject;
+            if (stream) stream.getTracks().forEach(track => track.stop());
+
+            activarRealidadAumentada(ctx, centroX, centroY, radioCentral, totalVerde, totalAzul, totalRojo);
         }
     }
 
-    function mostrarRealidadAumentada(ctx, centroX, centroY, radioCentral, firmaSecuencia) {
-        instrucciones.innerText = "¡Patrón Fractal Reconocido con Éxito!";
+    function activarRealidadAumentada(ctx, centroX, centroY, radioCentral, v, a, r) {
+        instrucciones.innerText = "¡Patrón Fractal Áureo Autenticado con Éxito!";
         statusDiv.style.color = "#00ffcc";
-        statusDiv.innerText = "ID: INF-NODE-" + firmaSecuencia.join("");
+        statusDiv.innerText = `Firma Verificada [V:${v} | A:${a} | R:${r}]`;
 
-        // Ocultar el elemento de video en vivo y mostrar el canvas congelado con la AR
         video.style.display = "none";
         processingCanvas.style.display = "block";
 
-        // Dibujar el ancla central verde
+        // Dibujar ancla central verde
         ctx.strokeStyle = "#00ff00";
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(centroX, centroY, radioCentral, 0, 2 * Math.PI);
         ctx.stroke();
 
-        // Cargar y superponer la FOTO CUADRADA en el centro
+        // Superponer la FOTO CUADRADA en Realidad Aumentada
         const fotoOverlay = new Image();
-        fotoOverlay.src = 'https://picsum.photos/300'; // Puedes cambiar este enlace por tu propia foto cuadrada o logo
+        fotoOverlay.src = 'https://picsum.photos/300'; // Puedes cambiar esta URL por tu propia foto cuadrada o logotipo
         fotoOverlay.onload = () => {
             const tamañoFoto = radioCentral * 1.8;
             const xPos = centroX - tamañoFoto / 2;
             const yPos = centroY - tamañoFoto / 2;
 
-            // Superponer la foto cuadrada
             ctx.drawImage(fotoOverlay, xPos, yPos, tamañoFoto, tamañoFoto);
 
-            // Marco elegante alrededor de la foto
             ctx.strokeStyle = "#00ffcc";
             ctx.lineWidth = 4;
             ctx.strokeRect(xPos, yPos, tamañoFoto, tamañoFoto);
@@ -188,18 +185,28 @@
         return deg * Math.PI / 180;
     }
 
-    function clasificarColor(r, g, b) {
-        // Zona blanca central o iluminación fuerte
-        if (r > 200 && g > 200 && b > 200) return "X";
-        
-        // Clasificación de tonos del fractal
-        if (g > r * 0.85 && g > b) {
-            return "V"; // Verde
-        } else if (b > r * 0.75 && b > g) {
-            return "A"; // Azul
-        } else if (r > g && r > b) {
-            return "R"; // Rojo
+    // Conversión y clasificación cromática precisa equivalente a HSV
+    function clasificarColorHSV(r, g, b) {
+        let rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
+        let max = Math.max(rNorm, gNorm, bNorm);
+        let min = Math.min(rNorm, gNorm, bNorm);
+        let diff = max - min;
+        let h = 0, s = max === 0 ? 0 : diff / max, v = max;
+
+        if (diff !== 0) {
+            if (max === rNorm) h = ((gNorm - bNorm) / diff) % 6;
+            else if (max === gNorm) h = (bNorm - rNorm) / diff + 2;
+            else h = (rNorm - gNorm) / diff + 4;
+            h = Math.round(h * 60);
+            if (h < 0) h += 360;
         }
+
+        if (s < 0.15 || v < 0.2) return "X"; // Neutros / oscuros
+
+        if (h >= 35 && h <= 85) return "V";      // Verde
+        else if (h > 85 && h < 150) return "A";  // Azul
+        else if (h >= 330 || h <= 15) return "R";// Rojo
+        
         return "X";
     }
 </script>
