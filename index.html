@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner Fractal AR con Botón GPS</title>
+    <title>Escáner AR Dual - Reconocimiento Fractal Universal</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -71,21 +71,18 @@
 <body>
 
 <div class="container">
-    <h2>Escáner Fractal AR + GPS</h2>
-    <p id="instrucciones">Apunta la cámara a la imagen fractal para escanear.</p>
+    <h2>Escáner AR Dual (Alfa / Beta)</h2>
+    <p id="instrucciones">Apunta la cámara a cualquiera de los dos fractales descargados.</p>
     
     <div class="view-container">
-        <!-- Video en vivo -->
         <video id="video" autoplay playsinline></video>
-        <!-- Canvas para procesamiento y RA -->
         <canvas id="processingCanvas" style="display:none;"></canvas>
     </div>
 
-    <div id="status" style="color: #ffaa00;">⏳ Buscando patrón fractal en vivo...</div>
+    <div id="status" style="color: #ffaa00;">⏳ Analizando texturas en vivo...</div>
     
-    <!-- Sección del botón de autorización GPS -->
     <div id="gpsSection">
-        <p style="margin: 0; color: #fff; font-size: 14px;">¡Patrón verificado con éxito! Pulsa el botón para autorizar tu ubicación:</p>
+        <p style="margin: 0; color: #fff; font-size: 14px;">¡Patrón validado! Pulsa para autorizar tu ubicación:</p>
         <button id="gpsBtn" onclick="obtenerGPS()">📍 Autorizar y Registrar GPS</button>
         <div id="gpsStatus">Esperando autorización del usuario...</div>
     </div>
@@ -111,7 +108,7 @@
             video.onloadedmetadata = () => {
                 processingCanvas.width = video.videoWidth;
                 processingCanvas.height = video.videoHeight;
-                scanInterval = setInterval(escanearPatronFractal, 200);
+                scanInterval = setInterval(escanearPatronesDual, 200);
             };
         } catch (err) {
             alert("Error al acceder a la cámara: " + err);
@@ -120,7 +117,7 @@
 
     iniciarCamara();
 
-    function escanearPatronFractal() {
+    function escanearPatronesDual() {
         if (!scanning) return;
 
         const ctx = processingCanvas.getContext('2d');
@@ -132,12 +129,10 @@
         const data = imgData.data;
 
         let totalPuntos = 0;
-        let conteoRojo = 0;
-        let conteoVerde = 0;
-        let conteoAzul = 0;
+        let cRojo = 0, cVerde = 0, cAzul = 0;
+        let cAmarillo = 0, cMagenta = 0, cCian = 0;
 
-        const filas = 8;
-        const columnas = 8;
+        const filas = 8, columnas = 8;
         const pasoX = Math.floor(w / (columnas + 1));
         const pasoY = Math.floor(h / (filas + 1));
 
@@ -151,45 +146,42 @@
                 let g = data[index + 1];
                 let b = data[index + 2];
 
-                let color = clasificarColorFractal(r, g, b);
-                if (color === 'R') conteoRojo++;
-                if (color === 'V') conteoVerde++;
-                if (color === 'A') conteoAzul++;
+                // Contabilizar huella de Fractal Alfa
+                if (r > g * 1.5 && r > b * 1.5) cRojo++;
+                else if (g > r * 1.2 && g > b) cVerde++;
+                else if (b > r * 1.2 && b > g) cAzul++;
+
+                // Contabilizar huella de Fractal Beta
+                if (r > 180 && g > 180 && b < 100) cAmarillo++;
+                else if (r > 150 && g < 100 && b > 150) cMagenta++;
+                else if (r < 100 && g > 150 && b > 150) cCian++;
+
                 totalPuntos++;
             }
         }
 
-        let propRojo = conteoRojo / totalPuntos;
-        let propVerde = conteoVerde / totalPuntos;
-        let propAzul = conteoAzul / totalPuntos;
+        let pAlfa = (cRojo + cVerde + cAzul) / totalPuntos;
+        let pBeta = (cAmarillo + cMagenta + cCian) / totalPuntos;
 
-        if (propRojo > 0.12 && propVerde > 0.12 && propAzul > 0.12) {
-            scanning = false;
-            clearInterval(scanInterval);
-
-            const stream = video.srcObject;
-            if (stream) stream.getTracks().forEach(track => track.stop());
-
-            activarRealidadAumentada(ctx, w, h, propRojo, propVerde, propAzul);
+        if (pAlfa > 0.35) {
+            finalizarEscaneo(ctx, w, h, "¡Fractal Alfa (Clásico) Detectado!");
+        } else if (pBeta > 0.35) {
+            finalizarEscaneo(ctx, w, h, "¡Fractal Beta (Variante) Detectado!");
         }
     }
 
-    function clasificarColorFractal(r, g, b) {
-        if (r > 200 && g > 200 && b > 200) return "X";
-        if (r > g * 1.5 && r > b * 1.5) return "R";
-        if (g > r * 1.2 && g > b) return "V";
-        if (b > r * 1.2 && b > g) return "A";
-        return "X";
-    }
+    function finalizarEscaneo(ctx, w, h, mensajeExito) {
+        scanning = false;
+        clearInterval(scanInterval);
 
-    function activarRealidadAumentada(ctx, w, h, r, v, a) {
-        instrucciones.innerText = "¡Imagen Fractal Reconocida!";
+        const stream = video.srcObject;
+        if (stream) stream.getTracks().forEach(track => track.stop());
+
+        instrucciones.innerText = mensajeExito;
         statusDiv.style.color = "#00ffcc";
-        statusDiv.innerText = `Firma Válida [R: ${(r*100).toFixed(0)}% | V: ${(v*100).toFixed(0)}% | A: ${(a*100).toFixed(0)}%]`;
+        statusDiv.innerText = "Firma geométrica validada correctamente.";
 
-        // Mostrar la sección interactiva con el botón obligatorio de GPS
         gpsSection.style.display = "block";
-
         video.style.display = "none";
         processingCanvas.style.display = "block";
 
@@ -197,8 +189,9 @@
         let centroY = h / 2;
         let tamañoFoto = Math.min(w, h) * 0.45;
 
+        // Superponer foto en Realidad Aumentada
         const fotoOverlay = new Image();
-        fotoOverlay.src = 'https://picsum.photos/300';
+        fotoOverlay.src = 'https://picsum.photos/300'; // Puedes reemplazar con tu enlace de foto final
         fotoOverlay.onload = () => {
             const xPos = centroX - tamañoFoto / 2;
             const yPos = centroY - tamañoFoto / 2;
@@ -211,7 +204,6 @@
         };
     }
 
-    // Función que se ejecuta exclusivamente al hacer clic en el botón de autorización GPS
     function obtenerGPS() {
         if ("geolocation" in navigator) {
             gpsStatusDiv.style.color = "#ffaa00";
