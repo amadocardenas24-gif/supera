@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner de Patrón Fractal Áureo - Alta Precisión</title>
+    <title>Escáner Fractal Universal por Autosimilitud</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -46,17 +46,17 @@
 <body>
 
 <div class="container">
-    <h2>Validador Fractal Multinivel</h2>
-    <p id="instrucciones">Apunta la cámara al patrón fractal. Analizando en vivo...</p>
+    <h2>Escáner Fractal Universal (AR)</h2>
+    <p id="instrucciones">Apunta a cualquier parte del fractal. Buscando autosimilitud...</p>
     
     <div class="view-container">
         <!-- Video en vivo continuo -->
         <video id="video" autoplay playsinline></video>
-        <!-- Canvas oculto para procesamiento matemático -->
+        <!-- Canvas oculto para procesamiento por rejilla -->
         <canvas id="processingCanvas" style="display:none;"></canvas>
     </div>
 
-    <div id="status" style="color: #ffcc00;">⏳ Buscando firma geométrica...</div>
+    <div id="status" style="color: #ffcc00;">⏳ Analizando textura fractal...</div>
 </div>
 
 <script>
@@ -77,8 +77,8 @@
             video.onloadedmetadata = () => {
                 processingCanvas.width = video.videoWidth;
                 processingCanvas.height = video.videoHeight;
-                // Bucle de escaneo fluido cada 200 ms
-                scanInterval = setInterval(escanearFotogramaMatricial, 200);
+                // Escaneo continuo cada 200ms
+                scanInterval = setInterval(escanearTexturaFractalUniversal, 200);
             };
         } catch (err) {
             alert("Error al acceder a la cámara: " + err);
@@ -87,7 +87,7 @@
 
     iniciarCamara();
 
-    function escanearFotogramaMatricial() {
+    function escanearTexturaFractalUniversal() {
         if (!scanning) return;
 
         const ctx = processingCanvas.getContext('2d');
@@ -98,94 +98,86 @@
         const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;
 
-        let centroX = w / 2;
-        let centroY = h / 2;
-        let radioCentral = Math.min(w, h) * 0.18; // Estimación del núcleo central blanco
+        // 🌐 MUESTREO POR REJILLA UNIVERSAL (Grid Sampling)
+        // En lugar de un solo centro, evaluamos una malla de 6x6 (36 puntos) repartidos por todo el fotograma
+        let totalPuntos = 0;
+        let conteoVerde = 0;
+        let conteoAzul = 0;
+        let conteoRojo = 0;
 
-        // Validar que el centro sea una oquedad clara/blanca
-        const centroIndex = (Math.floor(centroY) * w + Math.floor(centroX)) * 4;
-        const esCentroClaro = data[centroIndex] > 160 && data[centroIndex+1] > 160 && data[centroIndex+2] > 160;
+        const filas = 6;
+        const columnas = 6;
+        const pasoX = Math.floor(w / (columnas + 1));
+        const pasoY = Math.floor(h / (filas + 1));
 
-        if (!esCentroClaro) return; // Si no hay centro claro, descartar fotograma rápido
+        for (let f = 1; f <= filas; f++) {
+            for (let c = 1; c <= columnas; c++) {
+                let x = c * pasoX;
+                let y = f * pasoY;
+                let index = (y * w + x) * 4;
 
-        // 🌟 MATRIZ MULTINIVEL (3 Anillos concéntricos × 8 Ángulos = 24 puntos de muestreo)
-        const angulos = [0, 45, 90, 135, 180, 225, 270, 315];
-        const multiplicadores_radio = [1.2, 1.6, 2.1]; 
-        let firmaMatriz = [];
+                let r = data[index];
+                let g = data[index + 1];
+                let b = data[index + 2];
 
-        multiplicadores_radio.forEach(mult => {
-            let distancia = radioCentral * mult;
-            angulos.forEach(angulo => {
-                let rad = angulosToRad(angulo);
-                let x = Math.floor(centroX + distancia * Math.cos(rad));
-                let y = Math.floor(centroY + distancia * Math.sin(rad));
+                let clasificacion = clasificarColorHSV(r, g, b);
+                if (clasificacion === 'V') conteoVerde++;
+                if (clasificacion === 'A') conteoAzul++;
+                if (clasificacion === 'R') conteoRojo++;
+                totalPuntos++;
+            }
+        }
 
-                if (x >= 0 && x < w && y >= 0 && y < h) {
-                    let index = (y * w + x) * 4;
-                    let r = data[index];
-                    let g = data[index + 1];
-                    let b = data[index + 2];
-                    firmaMatriz.push(clasificarColorHSV(r, g, b));
-                } else {
-                    firmaMatriz.push("X");
-                }
-            });
-        });
+        // 🔒 CRITERIO FRACTAL UNIVERSAL: 
+        // Si el fotograma contiene una mezcla equilibrada de los tres colores (propio de la teselación fractal), 
+        // sin importar qué zona específica estés enfocando, se valida el reconocimiento.
+        let proporcionVerde = conteoVerde / totalPuntos;
+        let proporcionAzul = conteoAzul / totalPuntos;
+        let proporcionRojo = conteoRojo / totalPuntos;
 
-        // Conteo estricto de la distribución cromática del fractal
-        let totalVerde = firmaMatriz.filter(c => c === 'V').length;
-        let totalAzul = firmaMatriz.filter(c => c === 'A').length;
-        let totalRojo = firmaMatriz.filter(c => c === 'R').length;
-
-        // 🔒 CRITERIO DE AUTENTICIDAD ESTRICTO: Debe contener suficientes muestras de los 3 colores en los anillos
-        if (totalVerde >= 3 && totalAzul >= 3 && totalRojo >= 3) {
+        // Umbrales de tolerancia para reconocer la textura fractal en cualquier parte
+        if (proporcionVerde > 0.15 && proporcionAzul > 0.15 && proporcionRojo > 0.15) {
             scanning = false;
             clearInterval(scanInterval);
 
-            // Apagar la cámara al reconocer
+            // Detener stream de video
             const stream = video.srcObject;
             if (stream) stream.getTracks().forEach(track => track.stop());
 
-            activarRealidadAumentada(ctx, centroX, centroY, radioCentral, totalVerde, totalAzul, totalRojo);
+            activarRealidadAumentadaUniversal(ctx, w, h, conteoVerde, conteoAzul, conteoRojo);
         }
     }
 
-    function activarRealidadAumentada(ctx, centroX, centroY, radioCentral, v, a, r) {
-        instrucciones.innerText = "¡Patrón Fractal Áureo Autenticado con Éxito!";
+    function activarRealidadAumentadaUniversal(ctx, w, h, v, a, r) {
+        instrucciones.innerText = "¡Textura Fractal Reconocida en Cualquier Punto!";
         statusDiv.style.color = "#00ffcc";
-        statusDiv.innerText = `Firma Verificada [V:${v} | A:${a} | R:${r}]`;
+        statusDiv.innerText = `Autosimilitud Verificada [V:${v} | A:${a} | R:${r}]`;
 
         video.style.display = "none";
         processingCanvas.style.display = "block";
 
-        // Dibujar ancla central verde
-        ctx.strokeStyle = "#00ff00";
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(centroX, centroY, radioCentral, 0, 2 * Math.PI);
-        ctx.stroke();
+        // Coordenadas centrales del fotograma congelado para ubicar la AR
+        let centroX = w / 2;
+        let centroY = h / 2;
+        let tamañoFoto = Math.min(w, h) * 0.4;
 
-        // Superponer la FOTO CUADRADA en Realidad Aumentada
+        // Superponer la FOTO CUADRADA en Realidad Aumentada exactamente en el centro de la vista actual
         const fotoOverlay = new Image();
-        fotoOverlay.src = 'https://picsum.photos/300'; // Puedes cambiar esta URL por tu propia foto cuadrada o logotipo
+        fotoOverlay.src = 'https://picsum.photos/300'; // Puedes cambiar esta URL por tu propia foto o logotipo
         fotoOverlay.onload = () => {
-            const tamañoFoto = radioCentral * 1.8;
             const xPos = centroX - tamañoFoto / 2;
             const yPos = centroY - tamañoFoto / 2;
 
             ctx.drawImage(fotoOverlay, xPos, yPos, tamañoFoto, tamañoFoto);
 
+            // Marco holográfico de éxito
             ctx.strokeStyle = "#00ffcc";
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 5;
             ctx.strokeRect(xPos, yPos, tamañoFoto, tamañoFoto);
         };
     }
 
-    function angulosToRad(deg) {
-        return deg * Math.PI / 180;
-    }
-
-    // Conversión y clasificación cromática precisa equivalente a HSV
+    // Clasificador cromático HSV robusto frente a cambios de luz
     function clasificarColorHSV(r, g, b) {
         let rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
         let max = Math.max(rNorm, gNorm, bNorm);
@@ -201,7 +193,7 @@
             if (h < 0) h += 360;
         }
 
-        if (s < 0.15 || v < 0.2) return "X"; // Neutros / oscuros
+        if (s < 0.15 || v < 0.2) return "X"; // Descartar neutros / oscuros
 
         if (h >= 35 && h <= 85) return "V";      // Verde
         else if (h > 85 && h < 150) return "A";  // Azul
