@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extractor de Huella Espectral (FFT / Embedding)</title>
+    <title>AR Nativo con Sonido - Foz do Iguazú</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -11,161 +11,267 @@
             background-color: #0b0b0b;
             color: #ffffff;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
         }
-        h2 { color: #00ffcc; font-size: 20px; margin-bottom: 5px; }
+        h2 { color: #00ffcc; margin-bottom: 5px; font-size: 18px; }
         .container {
-            max-width: 550px;
+            max-width: 450px;
             margin: auto;
             background: #161616;
-            padding: 20px;
+            padding: 15px;
             border-radius: 14px;
             box-shadow: 0 4px 25px rgba(0,255,204,0.15);
         }
-        input[type="file"] {
-            margin: 15px 0;
-            color: #00ffcc;
+        .target-box {
+            margin-bottom: 12px;
+            padding: 8px;
+            background: #222;
+            border-radius: 8px;
+            border: 1px dashed #00ffcc;
+            font-size: 11px;
+            color: #aaa;
         }
-        .preview-container {
+        .view-container {
             position: relative;
-            width: 250px;
-            height: 250px;
-            margin: 15px auto;
+            width: 100%;
+            height: 320px;
+            margin: 10px auto;
             border-radius: 10px;
             overflow: hidden;
             border: 2px solid #00ffcc;
             background: #000;
         }
-        canvas {
+        video.cam-stream, canvas {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
         }
-        .vector-box {
-            background: #111;
-            border: 1px solid #333;
-            border-radius: 8px;
+        /* HUD FIJO CON REPRODUCTOR Y SONIDO ACTIVADO */
+        #hudOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 11, 11, 0.98);
+            backdrop-filter: blur(12px);
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
             padding: 12px;
+            box-sizing: border-box;
             text-align: left;
-            margin-top: 15px;
-            max-height: 140px;
-            overflow-y: auto;
+            z-index: 10;
         }
-        .vector-title {
-            font-size: 12px;
-            color: #00ffcc;
-            font-weight: bold;
-            margin-bottom: 6px;
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0,255,204,0.3);
+            padding-bottom: 6px;
         }
-        code {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 11px;
-            color: #aaa;
-            word-break: break-all;
-        }
-        .btn-analizar {
-            background-color: #00ffcc;
-            color: #000;
+        .hud-title { font-size: 14px; font-weight: bold; color: #00ffcc; margin: 0; }
+        .exit-btn {
+            background-color: #ff4d4d;
+            color: #fff;
             border: none;
-            padding: 10px 20px;
-            font-size: 14px;
+            padding: 5px 10px;
+            font-size: 11px;
             font-weight: bold;
-            border-radius: 6px;
+            border-radius: 4px;
             cursor: pointer;
-            margin-top: 10px;
         }
-        .btn-analizar:hover { background-color: #00cca3; }
+        .exit-btn:hover { background-color: #e60000; }
+
+        .hud-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            margin: 4px 0;
+        }
+        /* VIDEO LOCAL CON AUDIO */
+        .hud-video {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #00ffcc;
+            background: #000;
+        }
+        .hud-specs { font-size: 11px; line-height: 1.3; color: #ddd; width: 100%; }
+        .hud-specs span { color: #00ffcc; font-weight: bold; }
+
+        .hud-footer-info {
+            font-size: 10px;
+            color: #aaa;
+            background: #1a1a1a;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+
+        #status {
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Extractor de Huella Digital Visual</h2>
-    <p style="font-size: 12px; color: #aaa;">Sube la imagen (ej. el póster de Puerto Iguazú) para extraer su vector matemático espectral.</p>
-
-    <input type="file" id="imageInput" accept="image/*"><br>
-    <button class="btn-analizar" onclick="procesarImagen()">Analizar y Generar Huella</button>
-
-    <div class="preview-container">
-        <canvas id="canvasPreview" width="256" height="256"></canvas>
+    <h2>AR Nativo con Sonido - Foz do Iguazú</h2>
+    
+    <div class="target-box">
+        Apunta al póster. Ten <b>video5.mp4</b> en la misma carpeta. El sonido se activará al reconocer la imagen.
     </div>
 
-    <div class="vector-box">
-        <div class="vector-title">Vector de Características (Firma Numérica Única):</div>
-        <code id="vectorOutput">Esperando imagen para calcular huella espectral...</code>
+    <div class="view-container">
+        <!-- Cámara en vivo -->
+        <video id="videoCam" class="cam-stream" autoplay playsinline></video>
+        <!-- Canvas oculto para procesamiento matemático -->
+        <canvas id="processingCanvas" style="display:none;"></canvas>
+
+        <!-- HUD FIJO CON VIDEO Y AUDIO LOCAL -->
+        <div id="hudOverlay">
+            <div class="hud-header">
+                <div>
+                    <h3 class="hud-title">Foz do Iguazú AR (Audio Activo)</h3>
+                    <div style="font-size:9px; color:#888;">Motor de Visión Local</div>
+                </div>
+                <button class="exit-btn" onclick="reiniciarEscaneo()">✖ Salir / Re-escanear</button>
+            </div>
+
+            <div class="hud-body">
+                <!-- SIN ATRIBUTO MUTED PARA REPRODUCIR EL SONIDO ORIGINAL -->
+                <video id="activeVideo" class="hud-video" autoplay loop playsinline src="video5.mp4"></video>
+                
+                <div class="hud-specs">
+                    <div>Estado: <span style="color:#00ffcc;">Imagen y Audio Detectados</span></div>
+                    <div>Fuente: <span>video5.mp4 (Con sonido original)</span></div>
+                </div>
+            </div>
+
+            <div class="hud-footer-info">
+                <b>Sistema:</b> Procesamiento espectral nativo con reproducción multimedia sincronizada.
+            </div>
+        </div>
     </div>
+
+    <div id="status" style="color: #ffaa00;">⏳ Buscando huella espectral de la imagen...</div>
 </div>
 
 <script>
-    const imageInput = document.getElementById('imageInput');
-    const canvas = document.getElementById('canvasPreview');
-    const ctx = canvas.getContext('2d');
-    const vectorOutput = document.getElementById('vectorOutput');
+    const videoCam = document.getElementById('videoCam');
+    const processingCanvas = document.getElementById('processingCanvas');
+    const hudOverlay = document.getElementById('hudOverlay');
+    const activeVideo = document.getElementById('activeVideo');
+    const statusDiv = document.getElementById('status');
 
-    let imagenCargada = new Image();
+    let scanInterval;
+    let hudBloqueado = false;
 
-    imageInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                imagenCargada.onload = function() {
-                    // Redimensionar exactamente a 256x256 para estandarizar el análisis espectral
-                    ctx.drawImage(imagenCargada, 0, 0, 256, 256);
-                }
-                imagenCargada.src = event.target.result;
-            }
-            reader.readAsDataURL(file);
+    async function iniciarCamara() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            videoCam.srcObject = stream;
+            videoCam.onloadedmetadata = () => {
+                processingCanvas.width = videoCam.videoWidth;
+                processingCanvas.height = videoCam.videoHeight;
+                iniciarBucleEscaneo();
+            };
+        } catch (err) {
+            alert("Error al acceder a la cámara: " + err);
         }
-    });
+    }
 
-    function procesarImagen() {
-        if (!imagenCargada.src) {
-            alert("Por favor, selecciona una imagen primero.");
-            return;
-        }
+    iniciarCamara();
 
-        // Volver a asegurar la muestra en 256x256
-        ctx.drawImage(imagenCargada, 0, 0, 256, 256);
-        const imgData = ctx.getImageData(0, 0, 256, 256);
+    function iniciarBucleEscaneo() {
+        if (scanInterval) clearInterval(scanInterval);
+        scanInterval = setInterval(analizarHuellaEspectralCamara, 200);
+    }
+
+    function analizarHuellaEspectralCamara() {
+        if (hudBloqueado) return;
+
+        const ctx = processingCanvas.getContext('2d');
+        const w = processingCanvas.width;
+        const h = processingCanvas.height;
+
+        ctx.drawImage(videoCam, 0, 0, w, h);
+        const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;
 
-        // Dividir la imagen en una cuadrícula de 8x8 bloques (64 regiones espaciales)
-        // Esto simula la extracción de energía de baja/media frecuencia por bloques (Estilo DCT / FFT espacial)
-        const gridSize = 8;
-        const blockSize = 256 / gridSize;
-        let vectorCaracteristicas = [];
+        const gridSize = 6;
+        const blockSizeX = w / gridSize;
+        const blockSizeY = h / gridSize;
+
+        let verdeAbundante = 0; 
+        let contrasteCentral = 0; 
+        let azulBandera = 0; 
 
         for (let row = 0; row < gridSize; row++) {
             for (let col = 0; col < gridSize; col++) {
-                let sumaR = 0, sumaG = 0, sumaB = 0;
-                let pixelCount = 0;
-
-                // Muestrear cada bloque interno
-                for (let y = row * blockSize; y < (row + 1) * blockSize; y += 4) {
-                    for (let x = col * blockSize; x < (col + 1) * blockSize; x += 4) {
-                        let idx = (Math.floor(y) * 256 + Math.floor(x)) * 4;
-                        sumaR += data[idx];
-                        sumaG += data[idx + 1];
-                        sumaB += data[idx + 2];
-                        pixelCount++;
+                let rSum = 0, gSum = 0, bSum = 0, count = 0;
+                
+                for (let y = row * blockSizeY; y < (row + 1) * blockSizeY; y += 10) {
+                    for (let x = col * blockSizeX; x < (col + 1) * blockSizeX; x += 10) {
+                        let idx = (Math.floor(y) * w + Math.floor(x)) * 4;
+                        rSum += data[idx];
+                        gSum += data[idx+1];
+                        bSum += data[idx+2];
+                        count++;
                     }
                 }
 
-                // Obtener el promedio de energía lumínica y cromática del bloque (Frecuencia espacial local)
-                let promR = Math.round((sumaR / pixelCount) / 255 * 100) / 100;
-                let promG = Math.round((sumaG / pixelCount) / 255 * 100) / 100;
-                let promB = Math.round((sumaB / pixelCount) / 255 * 100) / 100;
+                let avgR = rSum / count;
+                let avgG = gSum / count;
+                let avgB = bSum / count;
 
-                // Comprimir en una métrica armónica de bloque
-                let energiaBloque = Math.round(((promR * 0.3) + (promG * 0.59) + (promB * 0.11)) * 100) / 100;
-                vectorCaracteristicas.push(energiaBloque);
+                if (row < 4 && avgG > avgR && avgG > avgB && avgG > 70) {
+                    verdeAbundante++;
+                }
+
+                if (Math.abs(avgR - avgG) > 30 || Math.abs(avgG - avgB) > 30) {
+                    contrasteCentral++;
+                }
+
+                if (row >= 4 && col >= 4 && avgB > avgR && avgB > 90) {
+                    azulBandera++;
+                }
             }
         }
 
-        // Mostrar la firma numérica generada en pantalla
-        vectorOutput.innerText = JSON.stringify(vectorCaracteristicas);
+        let esImagenReconocida = (verdeAbundante >= 4 && contrasteCentral >= 10 && azulBandera >= 1);
+
+        if (esImagenReconocida) {
+            hudBloqueado = true;
+            clearInterval(scanInterval);
+
+            videoCam.style.display = "none";
+            hudOverlay.style.display = "flex";
+            statusDiv.style.color = "#00ffcc";
+            statusDiv.innerText = "✔ Imagen Reconocida: Video y Sonido Activos";
+            
+            // Reproducción con audio habilitado tras la interacción del escaneo
+            activeVideo.play().catch(e => console.log("Autoplay con audio bloqueado por políticas del navegador:", e));
+        }
+    }
+
+    function reiniciarEscaneo() {
+        hudBloqueado = false;
+        activeVideo.pause();
+        activeVideo.currentTime = 0;
+        hudOverlay.style.display = "none";
+        videoCam.style.display = "block";
+        statusDiv.style.color = "#ffaa00";
+        statusDiv.innerText = "⏳ Buscando huella espectral de la imagen...";
+        iniciarBucleEscaneo();
     }
 </script>
 
