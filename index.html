@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner AR - HUD Fijo y Control de Bloqueo</title>
+    <title>Zapatería AR - Escáner Inteligente con HUD Fijo</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -51,15 +51,15 @@
             object-fit: cover;
             display: block;
         }
-        /* HUD FLOTANTE FIJO */
+        /* HUD FLOTANTE FIJO (BLOQUEADO EN PANTALLA) */
         #hudOverlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(11, 11, 11, 0.95);
-            backdrop-filter: blur(8px);
+            background: rgba(11, 11, 11, 0.96);
+            backdrop-filter: blur(10px);
             display: none;
             flex-direction: column;
             justify-content: space-between;
@@ -75,13 +75,11 @@
             padding-bottom: 6px;
         }
         .hud-title { font-size: 14px; font-weight: bold; color: #00ffcc; margin: 0; }
-        
-        /* Botón de Salir para volver a escanear */
         .exit-btn {
             background-color: #ff4d4d;
             color: #fff;
             border: none;
-            padding: 4px 10px;
+            padding: 5px 10px;
             font-size: 11px;
             font-weight: bold;
             border-radius: 4px;
@@ -93,17 +91,17 @@
             display: flex;
             gap: 10px;
             align-items: center;
-            margin: 5px 0;
+            margin: 4px 0;
         }
         .hud-img {
-            width: 95px;
-            height: 95px;
+            width: 90px;
+            height: 90px;
             object-fit: cover;
             border-radius: 8px;
             border: 1px solid #00ffcc;
             background: #fff;
         }
-        .hud-specs { font-size: 11px; line-height: 1.3; color: #ddd; }
+        .hud-specs { font-size: 10px; line-height: 1.3; color: #ddd; }
         .hud-specs span { color: #00ffcc; font-weight: bold; }
 
         .hud-tabs {
@@ -119,7 +117,7 @@
             border: none;
             color: #aaa;
             font-size: 10px;
-            padding: 6px 0;
+            padding: 5px 0;
             cursor: pointer;
             font-weight: bold;
         }
@@ -131,7 +129,7 @@
             background: #1a1a1a;
             padding: 6px;
             border-radius: 6px;
-            height: 45px;
+            height: 50px;
             overflow-y: auto;
             margin-top: 4px;
             border: 1px solid #333;
@@ -149,26 +147,26 @@
 <body>
 
 <div class="container">
-    <h2>Escáner AR - Modo Fijo e Interactivo</h2>
+    <h2>Zapatería Inteligente - AR</h2>
     
-    <!-- Objetivo Generado para Pruebas -->
+    <!-- Patrón Maestro de Referencia -->
     <div class="target-box">
-        <p style="margin: 0 0 6px 0; font-size: 11px; color: #aaa;">Patrón Objetivo (Apunta aquí para fijar el HUD):</p>
+        <p style="margin: 0 0 4px 0; font-size: 11px; color: #aaa;">Fractal Maestro (Apunta aquí para bloquear el HUD):</p>
         <canvas id="fractalGenCanvas" class="generator-preview" width="300" height="300"></canvas>
     </div>
 
     <div class="view-container">
         <!-- Video en vivo -->
         <video id="video" autoplay playsinline></video>
-        <!-- Canvas oculto para procesamiento -->
+        <!-- Canvas de procesamiento -->
         <canvas id="processingCanvas" style="display:none;"></canvas>
 
-        <!-- HUD FLOTANTE FIJO (Se queda estático al reconocer) -->
+        <!-- HUD FIJO E INTERACTIVO -->
         <div id="hudOverlay">
             <div class="hud-header">
                 <div>
-                    <h3 class="hud-title">Zapatilla Urbana Heritage</h3>
-                    <div style="font-size:9px; color:#888;">SKU: HRT-8842-X</div>
+                    <h3 class="hud-title">Zapatilla Urbana Pro-Series</h3>
+                    <div style="font-size:9px; color:#888;">Fabricante: Calzado Fino de León S.A.</div>
                 </div>
                 <button class="exit-btn" onclick="reiniciarEscaneo()">✖ Salir / Escanear</button>
             </div>
@@ -176,9 +174,10 @@
             <div class="hud-body">
                 <img class="hud-img" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300" alt="Zapato">
                 <div class="hud-specs">
-                    <div>Color: <span>Negro Ónix / Bronce</span></div>
-                    <div>Talla: <span>42 EUR / 9 US</span></div>
-                    <div>Stock Local: <span style="color:#00ffcc;">Disponible (4 pares)</span></div>
+                    <div>Piel: <span>100% Cuero Vacuno Graneado</span></div>
+                    <div>Color: <span>Rojo Grana / Ónix</span></div>
+                    <div>Talla: <span>43 EUR / 10 US</span></div>
+                    <div>Stock Local: <span style="color:#00ffcc;">Disponible (6 pares)</span></div>
                 </div>
             </div>
 
@@ -190,26 +189,25 @@
                 </div>
                 <div class="tab-content">
                     <div class="tab-pane active" id="pane0">
-                        <b>Exterior:</b> 100% Cuero vacuno flor graneada.<br>
-                        <b>Suela:</b> Caucho vulcanizado antideslizante.
+                        <b>Forro:</b> Textil antimicrobiano.<br>
+                        <b>Suela:</b> Caucho vulcanizado con cámara de aire y gel de impacto.
                     </div>
                     <div class="tab-pane" id="pane1">
-                        No sumergir en agua. Limpiar con paño semihúmedo. Aplicar crema nutritiva incolora.
+                        No sumergir. Limpiar con paño semihúmedo y aplicar crema nutritiva incolora cada 30 días.
                     </div>
                     <div class="tab-pane" id="pane2">
-                        <b>Manufactura:</b> Taller Central Certificado.<br>
-                        <b>Trazabilidad:</b> Lote ecológico libre de cromo.
+                        <b>Planta:</b> León, Gto. Lote ecológico certificado sin cromo hexavalente.
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="status" style="color: #ffaa00;">⏳ Buscando firma matemática exacta...</div>
+    <div id="status" style="color: #ffaa00;">⏳ Buscando código fractal resiliente...</div>
 </div>
 
 <script>
-    // 1. GENERAR EL FRACTAL OFICIAL EN PANTALLA
+    // 1. GENERAR EL FRACTAL MAESTRO EN PANTALLA
     const genCanvas = document.getElementById('fractalGenCanvas');
     const genCtx = genCanvas.getContext('2d');
     const gw = genCanvas.width, gh = genCanvas.height;
@@ -217,9 +215,9 @@
     
     for (let x = 0; x < gw; x++) {
         for (let y = 0; y < gh; y++) {
-            let zx = 1.5 * (x - gw / 2) / (0.5 * gw);
-            let zy = (y - gh / 2) / (0.5 * gh);
-            let i = 50, cx = -0.7, cy = 0.27015;
+            let zx = 1.5 * (x - gw / 2) / (0.45 * gw);
+            let zy = (y - gh / 2) / (0.45 * gh);
+            let i = 60, cx = -0.4, cy = 0.6;
             while (zx * zx + zy * zy < 4 && i > 0) {
                 let tmp = zx * zx - zy * zy + cx;
                 zy = 2.0 * zx * zy + cy;
@@ -228,26 +226,27 @@
             }
             let idx = (y * gw + x) * 4;
             if (i === 0) {
-                gImgData.data[idx] = 255; gImgData.data[idx+1] = 255; gImgData.data[idx+2] = 240;
+                gImgData.data[idx] = 245; gImgData.data[idx+1] = 245; gImgData.data[idx+2] = 245;
             } else {
-                let c = i % 3;
-                if (c === 0) { gImgData.data[idx] = 235; gImgData.data[idx+1] = 40; gImgData.data[idx+2] = 40; }
-                else if (c === 1) { gImgData.data[idx] = 40; gImgData.data[idx+1] = 200; gImgData.data[idx+2] = 80; }
-                else { gImgData.data[idx] = 30; gImgData.data[idx+1] = 130; gImgData.data[idx+2] = 245; }
+                let colMod = i % 4;
+                if (colMod === 0) { gImgData.data[idx] = 220; gImgData.data[idx+1] = 30; gImgData.data[idx+2] = 50; }
+                else if (colMod === 1) { gImgData.data[idx] = 30; gImgData.data[idx+1] = 180; gImgData.data[idx+2] = 90; }
+                else if (colMod === 2) { gImgData.data[idx] = 25; gImgData.data[idx+1] = 110; gImgData.data[idx+2] = 230; }
+                else { gImgData.data[idx] = 230; gImgData.data[idx+1] = 160; gImgData.data[idx+2] = 20; }
             }
             gImgData.data[idx+3] = 255;
         }
     }
     genCtx.putImageData(gImgData, 0, 0);
 
-    // 2. CONTROL DE ESTADO Y ESCÁNER
+    // 2. MOTOR DE ESCÁNER Y BLOQUEO DE HUD
     const video = document.getElementById('video');
     const processingCanvas = document.getElementById('processingCanvas');
     const hudOverlay = document.getElementById('hudOverlay');
     const statusDiv = document.getElementById('status');
 
     let scanInterval;
-    let hudBloqueado = false; // Bandera para congelar la interfaz al acertar
+    let hudBloqueado = false;
 
     async function iniciarCamara() {
         try {
@@ -269,11 +268,11 @@
 
     function iniciarBucleEscaneo() {
         if (scanInterval) clearInterval(scanInterval);
-        scanInterval = setInterval(validarFirmaFractalEstricta, 150);
+        scanInterval = setInterval(analizarResilienciaOptica, 150);
     }
 
-    function validarFirmaFractalEstricta() {
-        if (hudBloqueado) return; // Si ya se fijó el HUD, ignoramos la cámara
+    function analizarResilienciaOptica() {
+        if (hudBloqueado) return; // Si está fijo en pantalla, no procesa la cámara
 
         const ctx = processingCanvas.getContext('2d');
         const w = processingCanvas.width;
@@ -285,55 +284,57 @@
 
         let cx = Math.floor(w / 2);
         let cy = Math.floor(h / 2);
-        let baseRadius = Math.floor(Math.min(w, h) * 0.12);
+        let baseRadius = Math.floor(Math.min(w, h) * 0.14);
 
-        let aciertosAnillo1 = 0;
-        let aciertosAnillo2 = 0;
+        let aciertosNucleo = 0;
+        let aciertosGradiente = 0;
 
-        for (let angle = 0; angle < 360; angle += 20) {
+        for (let angle = 0; angle < 360; angle += 25) {
             let rad = angle * Math.PI / 180;
 
-            let x1 = Math.floor(cx + (baseRadius * 0.3) * Math.cos(rad));
-            let y1 = Math.floor(cy + (baseRadius * 0.3) * Math.sin(rad));
-            if (x1 >= 0 && x1 < w && y1 >= 0 && y1 < h) {
-                let idx = (y1 * w + x1) * 4;
-                if (data[idx] > 180 && data[idx+1] > 180) aciertosAnillo1++;
-            }
+            let xN = Math.floor(cx + (baseRadius * 0.25) * Math.cos(rad));
+            let yN = Math.floor(cy + (baseRadius * 0.25) * Math.sin(rad));
+            let xA = Math.floor(cx + baseRadius * Math.cos(rad));
+            let yA = Math.floor(cy + baseRadius * Math.sin(rad));
 
-            let x2 = Math.floor(cx + baseRadius * Math.cos(rad));
-            let y2 = Math.floor(cy + baseRadius * Math.sin(rad));
-            if (x2 >= 0 && x2 < w && y2 >= 0 && y2 < h) {
-                let idx = (y2 * w + x2) * 4;
-                let r = data[idx], g = data[idx+1], b = data[idx+2];
-                if ((r > 150 && g < 100) || (g > 150 && b < 100) || (b > 150 && r < 100)) {
-                    aciertosAnillo2++;
+            if (xN >= 0 && xN < w && yN >= 0 && yN < h && xA >= 0 && xA < w && yA >= 0 && yA < h) {
+                let idxN = (yN * w + xN) * 4;
+                let idxA = (yA * w + xA) * 4;
+
+                let lumNucleo = (data[idxN] + data[idxN+1] + data[idxN+2]) / 3;
+                let lumAnillo = (data[idxA] + data[idxA+1] + data[idxA+2]) / 3;
+
+                if (lumNucleo > lumAnillo * 1.15) aciertosNucleo++;
+
+                let r = data[idxA], g = data[idxA+1], b = data[idxA+2];
+                if (Math.abs(r - g) > 25 || Math.abs(g - b) > 25 || Math.abs(r - b) > 25) {
+                    aciertosGradiente++;
                 }
             }
         }
 
-        let scoreCentro = aciertosAnillo1 / 18;
-        let scoreAnillo = aciertosAnillo2 / 18;
-        let esFirmaValida = (scoreCentro > 0.35 && scoreAnillo > 0.30);
+        let scoreNucleo = aciertosNucleo / 15;
+        let scoreGradiente = aciertosGradiente / 15;
+        let esValidoResiliente = (scoreNucleo > 0.40 && scoreGradiente > 0.35);
 
-        if (esFirmaValida) {
-            // ¡ACIERTO! CONGELAMOS EL HUD EN PANTALLA
+        if (esValidoResiliente) {
+            // ¡COINCIDENCIA! CONGELAMOS EL HUD EN PANTALLA
             hudBloqueado = true;
-            clearInterval(scanInterval); // Detenemos el escáner temporalmente
+            clearInterval(scanInterval);
 
             video.style.display = "none";
             hudOverlay.style.display = "flex";
             statusDiv.style.color = "#00ffcc";
-            statusDiv.innerText = "✔ HUD Fijo: Explora el menú con libertad";
+            statusDiv.innerText = "✔ HUD Fijo: Consulta los datos libremente";
         }
     }
 
-    // Botón de Salida: Libera el bloqueo y reinicia la búsqueda de etiquetas
     function reiniciarEscaneo() {
         hudBloqueado = false;
         hudOverlay.style.display = "none";
         video.style.display = "block";
         statusDiv.style.color = "#ffaa00";
-        statusDiv.innerText = "⏳ Buscando firma matemática exacta...";
+        statusDiv.innerText = "⏳ Buscando código fractal resiliente...";
         iniciarBucleEscaneo();
     }
 
