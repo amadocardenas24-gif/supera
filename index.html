@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner AR - Validación Matemática Estricta por Fractal Áureo</title>
+    <title>Escáner AR - HUD Fijo y Control de Bloqueo</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -22,17 +22,16 @@
             border-radius: 14px;
             box-shadow: 0 4px 25px rgba(0,255,204,0.15);
         }
-        /* Contenedor del Objetivo de Referencia (El Fractal Creado) */
         .target-box {
-            margin-bottom: 15px;
-            padding: 10px;
+            margin-bottom: 12px;
+            padding: 8px;
             background: #222;
             border-radius: 8px;
             border: 1px dashed #00ffcc;
         }
         canvas.generator-preview {
-            width: 140px;
-            height: 140px;
+            width: 120px;
+            height: 120px;
             border-radius: 6px;
             border: 2px solid #00ffcc;
         }
@@ -52,14 +51,14 @@
             object-fit: cover;
             display: block;
         }
-        /* HUD FLOTANTE DE REALIDAD AUMENTADA */
+        /* HUD FLOTANTE FIJO */
         #hudOverlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(11, 11, 11, 0.92);
+            background: rgba(11, 11, 11, 0.95);
             backdrop-filter: blur(8px);
             display: none;
             flex-direction: column;
@@ -76,8 +75,20 @@
             padding-bottom: 6px;
         }
         .hud-title { font-size: 14px; font-weight: bold; color: #00ffcc; margin: 0; }
-        .hud-sku { font-size: 10px; color: #aaa; background: #222; padding: 2px 6px; border-radius: 4px; }
         
+        /* Botón de Salir para volver a escanear */
+        .exit-btn {
+            background-color: #ff4d4d;
+            color: #fff;
+            border: none;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .exit-btn:hover { background-color: #e60000; }
+
         .hud-body {
             display: flex;
             gap: 10px;
@@ -85,8 +96,8 @@
             margin: 5px 0;
         }
         .hud-img {
-            width: 100px;
-            height: 100px;
+            width: 95px;
+            height: 95px;
             object-fit: cover;
             border-radius: 8px;
             border: 1px solid #00ffcc;
@@ -108,7 +119,7 @@
             border: none;
             color: #aaa;
             font-size: 10px;
-            padding: 5px 0;
+            padding: 6px 0;
             cursor: pointer;
             font-weight: bold;
         }
@@ -138,28 +149,28 @@
 <body>
 
 <div class="container">
-    <h2>Escáner AR - Firma Fractal Estricta</h2>
+    <h2>Escáner AR - Modo Fijo e Interactivo</h2>
     
     <!-- Objetivo Generado para Pruebas -->
     <div class="target-box">
-        <p style="margin: 0 0 8px 0; font-size: 11px; color: #aaa;">Patrón Objetivo (Apunta la cámara hacia aquí o imprímelo):</p>
+        <p style="margin: 0 0 6px 0; font-size: 11px; color: #aaa;">Patrón Objetivo (Apunta aquí para fijar el HUD):</p>
         <canvas id="fractalGenCanvas" class="generator-preview" width="300" height="300"></canvas>
     </div>
 
     <div class="view-container">
         <!-- Video en vivo -->
         <video id="video" autoplay playsinline></video>
-        <!-- Canvas oculto para procesamiento matemático -->
+        <!-- Canvas oculto para procesamiento -->
         <canvas id="processingCanvas" style="display:none;"></canvas>
 
-        <!-- HUD FLOTANTE DE REALIDAD AUMENTADA -->
+        <!-- HUD FLOTANTE FIJO (Se queda estático al reconocer) -->
         <div id="hudOverlay">
             <div class="hud-header">
                 <div>
                     <h3 class="hud-title">Zapatilla Urbana Heritage</h3>
-                    <div style="font-size:9px; color:#888;">Fabricante: Artesanal León S.A.</div>
+                    <div style="font-size:9px; color:#888;">SKU: HRT-8842-X</div>
                 </div>
-                <div class="hud-sku">SKU: HRT-8842-X</div>
+                <button class="exit-btn" onclick="reiniciarEscaneo()">✖ Salir / Escanear</button>
             </div>
 
             <div class="hud-body">
@@ -180,14 +191,14 @@
                 <div class="tab-content">
                     <div class="tab-pane active" id="pane0">
                         <b>Exterior:</b> 100% Cuero vacuno flor graneada.<br>
-                        <b>Suela:</b> Caucho vulcanizado con cámara de aire.
+                        <b>Suela:</b> Caucho vulcanizado antideslizante.
                     </div>
                     <div class="tab-pane" id="pane1">
-                        No sumergir en agua. Limpiar con paño semihúmedo y crema nutritiva incolora.
+                        No sumergir en agua. Limpiar con paño semihúmedo. Aplicar crema nutritiva incolora.
                     </div>
                     <div class="tab-pane" id="pane2">
                         <b>Manufactura:</b> Taller Central Certificado.<br>
-                        <b>Trazabilidad:</b> Lote ecológico sin cromo.
+                        <b>Trazabilidad:</b> Lote ecológico libre de cromo.
                     </div>
                 </div>
             </div>
@@ -198,12 +209,12 @@
 </div>
 
 <script>
-    // 1. GENERAR EL FRACTAL OFICIAL EN PANTALLA (Mandelbrot c = -0.7 + 0.27015i)
+    // 1. GENERAR EL FRACTAL OFICIAL EN PANTALLA
     const genCanvas = document.getElementById('fractalGenCanvas');
     const genCtx = genCanvas.getContext('2d');
     const gw = genCanvas.width, gh = genCanvas.height;
     const gImgData = genCtx.createImageData(gw, gh);
-
+    
     for (let x = 0; x < gw; x++) {
         for (let y = 0; y < gh; y++) {
             let zx = 1.5 * (x - gw / 2) / (0.5 * gw);
@@ -229,13 +240,14 @@
     }
     genCtx.putImageData(gImgData, 0, 0);
 
-    // 2. CONFIGURACIÓN DEL ESCÁNER CON VALIDACIÓN MATEMÁTICA ESTRICTA
+    // 2. CONTROL DE ESTADO Y ESCÁNER
     const video = document.getElementById('video');
     const processingCanvas = document.getElementById('processingCanvas');
     const hudOverlay = document.getElementById('hudOverlay');
     const statusDiv = document.getElementById('status');
 
     let scanInterval;
+    let hudBloqueado = false; // Bandera para congelar la interfaz al acertar
 
     async function iniciarCamara() {
         try {
@@ -246,7 +258,7 @@
             video.onloadedmetadata = () => {
                 processingCanvas.width = video.videoWidth;
                 processingCanvas.height = video.videoHeight;
-                scanInterval = setInterval(validarFirmaFractalEstricta, 150);
+                iniciarBucleEscaneo();
             };
         } catch (err) {
             alert("Error al acceder a la cámara: " + err);
@@ -255,7 +267,14 @@
 
     iniciarCamara();
 
+    function iniciarBucleEscaneo() {
+        if (scanInterval) clearInterval(scanInterval);
+        scanInterval = setInterval(validarFirmaFractalEstricta, 150);
+    }
+
     function validarFirmaFractalEstricta() {
+        if (hudBloqueado) return; // Si ya se fijó el HUD, ignoramos la cámara
+
         const ctx = processingCanvas.getContext('2d');
         const w = processingCanvas.width;
         const h = processingCanvas.height;
@@ -268,18 +287,12 @@
         let cy = Math.floor(h / 2);
         let baseRadius = Math.floor(Math.min(w, h) * 0.12);
 
-        // FIRMA MATEMÁTICA ESTRICTA: Verificamos una matriz de anillos concéntricos
-        // que corresponden exactamente a las Bandas de Color del Mandelbrot generado.
-        let aciertosAnillo1 = 0; // Zona central clara
-        let aciertosAnillo2 = 0; // Zona de transición (Rojo/Verde/Azul interno)
-        let aciertosAnillo3 = 0; // Zona exterior del patrón
-        let totalMuestras = 0;
+        let aciertosAnillo1 = 0;
+        let aciertosAnillo2 = 0;
 
-        // Comprobación de puntos radiales con precisión matemática
         for (let angle = 0; angle < 360; angle += 20) {
             let rad = angle * Math.PI / 180;
 
-            // Muestra en anillo 1 (Centro claro)
             let x1 = Math.floor(cx + (baseRadius * 0.3) * Math.cos(rad));
             let y1 = Math.floor(cy + (baseRadius * 0.3) * Math.sin(rad));
             if (x1 >= 0 && x1 < w && y1 >= 0 && y1 < h) {
@@ -287,48 +300,41 @@
                 if (data[idx] > 180 && data[idx+1] > 180) aciertosAnillo1++;
             }
 
-            // Muestra en anillo 2 (Bandas de color intermedias)
             let x2 = Math.floor(cx + baseRadius * Math.cos(rad));
             let y2 = Math.floor(cy + baseRadius * Math.sin(rad));
             if (x2 >= 0 && x2 < w && y2 >= 0 && y2 < h) {
                 let idx = (y2 * w + x2) * 4;
                 let r = data[idx], g = data[idx+1], b = data[idx+2];
-                // Verificar presencia de croma definido del fractal
                 if ((r > 150 && g < 100) || (g > 150 && b < 100) || (b > 150 && r < 100)) {
                     aciertosAnillo2++;
                 }
             }
-
-            // Muestra en anillo 3 (Anillo exterior armónico)
-            let x3 = Math.floor(cx + (baseRadius * 1.6) * Math.cos(rad));
-            let y3 = Math.floor(cy + (baseRadius * 1.6) * Math.sin(rad));
-            if (x3 >= 0 && x3 < w && y3 >= 0 && y3 < h) {
-                let idx = (y3 * w + x3) * 4;
-                let r = data[idx], g = data[idx+1], b = data[idx+2];
-                if (r > 30 || g > 30 || b > 30) aciertosAnillo3++;
-            }
-            totalMuestras++;
         }
 
-        // Criterio matemático ajustado para rechazar falsos positivos
         let scoreCentro = aciertosAnillo1 / 18;
         let scoreAnillo = aciertosAnillo2 / 18;
-
         let esFirmaValida = (scoreCentro > 0.35 && scoreAnillo > 0.30);
 
         if (esFirmaValida) {
-            // ¡COINCIDENCIA EXACTA! Activamos el HUD de Realidad Aumentada
+            // ¡ACIERTO! CONGELAMOS EL HUD EN PANTALLA
+            hudBloqueado = true;
+            clearInterval(scanInterval); // Detenemos el escáner temporalmente
+
             video.style.display = "none";
             hudOverlay.style.display = "flex";
             statusDiv.style.color = "#00ffcc";
-            statusDiv.innerText = "✔ Código Fractal Áureo Validado con Éxito";
-        } else {
-            // SI NO COINCIDE: Sigue buscando de manera fluida
-            video.style.display = "block";
-            hudOverlay.style.display = "none";
-            statusDiv.style.color = "#ffaa00";
-            statusDiv.innerText = "⏳ Buscando firma matemática exacta... (Buscando)";
+            statusDiv.innerText = "✔ HUD Fijo: Explora el menú con libertad";
         }
+    }
+
+    // Botón de Salida: Libera el bloqueo y reinicia la búsqueda de etiquetas
+    function reiniciarEscaneo() {
+        hudBloqueado = false;
+        hudOverlay.style.display = "none";
+        video.style.display = "block";
+        statusDiv.style.color = "#ffaa00";
+        statusDiv.innerText = "⏳ Buscando firma matemática exacta...";
+        iniciarBucleEscaneo();
     }
 
     function cambiarTab(index) {
