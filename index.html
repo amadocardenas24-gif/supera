@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner AR Dual - Reconocimiento Fractal Universal</title>
+    <title>Escáner Continuo - Código Fractal Áureo</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -41,62 +41,30 @@
             margin-top: 15px;
             word-break: break-all;
         }
-        #gpsSection {
-            margin-top: 15px;
-            padding: 12px;
-            background: #222;
-            border-radius: 8px;
-            display: none;
-            border: 1px solid #444;
-        }
-        #gpsBtn {
-            background-color: #00ffcc;
-            color: #000;
-            border: none;
-            padding: 10px 20px;
-            font-size: 15px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        #gpsBtn:hover { background-color: #00cca3; }
-        #gpsStatus {
-            font-size: 14px;
-            color: #aaaaaa;
-            margin-top: 8px;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Escáner AR Dual (Alfa / Beta)</h2>
-    <p id="instrucciones">Apunta la cámara a cualquiera de los dos fractales descargados.</p>
+    <h2>Escáner de Código Fractal Áureo</h2>
+    <p id="instrucciones">Apunta la cámara a tu imagen fractal. Si coincide, se teñirá de color automáticamente.</p>
     
     <div class="view-container">
+        <!-- Video en vivo continuo -->
         <video id="video" autoplay playsinline></video>
+        <!-- Canvas para procesamiento en tiempo real -->
         <canvas id="processingCanvas" style="display:none;"></canvas>
     </div>
 
-    <div id="status" style="color: #ffaa00;">⏳ Analizando texturas en vivo...</div>
-    
-    <div id="gpsSection">
-        <p style="margin: 0; color: #fff; font-size: 14px;">¡Patrón validado! Pulsa para autorizar tu ubicación:</p>
-        <button id="gpsBtn" onclick="obtenerGPS()">📍 Autorizar y Registrar GPS</button>
-        <div id="gpsStatus">Esperando autorización del usuario...</div>
-    </div>
+    <div id="status" style="color: #ffaa00;">⏳ Buscando el Código Fractal Áureo...</div>
 </div>
 
 <script>
     const video = document.getElementById('video');
     const processingCanvas = document.getElementById('processingCanvas');
     const statusDiv = document.getElementById('status');
-    const gpsSection = document.getElementById('gpsSection');
-    const gpsStatusDiv = document.getElementById('gpsStatus');
     const instrucciones = document.getElementById('instrucciones');
 
-    let scanning = true;
     let scanInterval;
 
     async function iniciarCamara() {
@@ -108,7 +76,8 @@
             video.onloadedmetadata = () => {
                 processingCanvas.width = video.videoWidth;
                 processingCanvas.height = video.videoHeight;
-                scanInterval = setInterval(escanearPatronesDual, 200);
+                // Bucle continuo de escaneo cada 150ms
+                scanInterval = setInterval(escanearYValidarImagen, 150);
             };
         } catch (err) {
             alert("Error al acceder a la cámara: " + err);
@@ -117,114 +86,93 @@
 
     iniciarCamara();
 
-    function escanearPatronesDual() {
-        if (!scanning) return;
-
-        const ctx = processingCanvas.getContext('2d');
+    function escanearYValidarImagen() {
+        const ctx = processingCanvas.processingCtx || processingCanvas.getContext('2d');
         const w = processingCanvas.width;
         const h = processingCanvas.height;
 
+        // Dibujar el fotograma actual de la cámara
         ctx.drawImage(video, 0, 0, w, h);
         const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;
 
-        let totalPuntos = 0;
-        let cRojo = 0, cVerde = 0, cAzul = 0;
-        let cAmarillo = 0, cMagenta = 0, cCian = 0;
+        // 1. Validar la característica principal del "Código fractal aureo":
+        // El gran agujero/hueco blanco circular exactamente en el centro de la imagen.
+        let centroX = Math.floor(w / 2);
+        let centroY = Math.floor(h / 2);
+        let radioMuestra = Math.floor(Math.min(w, h) * 0.15);
 
-        const filas = 8, columnas = 8;
-        const pasoX = Math.floor(w / (columnas + 1));
-        const pasoY = Math.floor(h / (filas + 1));
+        let pixelesBlancosCentro = 0;
+        let totalPuntosCentro = 0;
 
-        for (let f = 1; f <= filas; f++) {
-            for (let c = 1; c <= columnas; c++) {
-                let x = c * pasoX;
-                let y = f * pasoY;
-                let index = (y * w + x) * 4;
-
-                let r = data[index];
-                let g = data[index + 1];
-                let b = data[index + 2];
-
-                // Contabilizar huella de Fractal Alfa
-                if (r > g * 1.5 && r > b * 1.5) cRojo++;
-                else if (g > r * 1.2 && g > b) cVerde++;
-                else if (b > r * 1.2 && b > g) cAzul++;
-
-                // Contabilizar huella de Fractal Beta
-                if (r > 180 && g > 180 && b < 100) cAmarillo++;
-                else if (r > 150 && g < 100 && b > 150) cMagenta++;
-                else if (r < 100 && g > 150 && b > 150) cCian++;
-
-                totalPuntos++;
+        // Inspeccionar el núcleo central buscando la oquedad blanca característica
+        for (let dy = -radioMuestra; dy <= radioMuestra; dy += 5) {
+            for (let dx = -radioMuestra; dx <= radioMuestra; dx += 5) {
+                let x = centroX + dx;
+                let y = centroY + dy;
+                if (x >= 0 && x < w && y >= 0 && y < h) {
+                    let idx = (y * w + x) * 4;
+                    let r = data[idx], g = data[idx+1], b = data[idx+2];
+                    if (r > 180 && g > 180 && b > 180) {
+                        pixelesBlancosCentro++;
+                    }
+                    totalPuntosCentro++;
+                }
             }
         }
 
-        let pAlfa = (cRojo + cVerde + cAzul) / totalPuntos;
-        let pBeta = (cAmarillo + cMagenta + cCian) / totalPuntos;
+        let densidadCentroClaro = pixelesBlancosCentro / totalPuntosCentro;
 
-        if (pAlfa > 0.35) {
-            finalizarEscaneo(ctx, w, h, "¡Fractal Alfa (Clásico) Detectado!");
-        } else if (pBeta > 0.35) {
-            finalizarEscaneo(ctx, w, h, "¡Fractal Beta (Variante) Detectado!");
+        // 2. Validar los anillos circundantes (la teselación de colores Azul, Verde y Rojo de tu fractal)
+        let conteoAzul = 0, conteoVerde = 0, conteoRojo = 0;
+        let totalAnillo = 0;
+        let radioAnillo = radioMuestra * 1.8;
+
+        for (let ang = 0; ang < 360; ang += 30) {
+            let rad = ang * Math.PI / 180;
+            let x = Math.floor(centroX + radioAnillo * Math.cos(rad));
+            let y = Math.floor(centroY + radioAnillo * Math.sin(rad));
+
+            if (x >= 0 && x < w && y >= 0 && y < h) {
+                let idx = (y * w + x) * 4;
+                let r = data[idx], g = data[idx+1], b = data[idx+2];
+
+                if (b > r && b > g * 0.8) conteoAzul++;
+                else if (g > r && g > b) conteoVerde++;
+                else if (r > g && r > b) conteoRojo++;
+                totalAnillo++;
+            }
         }
-    }
 
-    function finalizarEscaneo(ctx, w, h, mensajeExito) {
-        scanning = false;
-        clearInterval(scanInterval);
+        // Criterio estricto de coincidencia con el "Código fractal aureo"
+        let esElFractalVerdadero = (densidadCentroClaro > 0.4) && 
+                                    (conteoAzul >= 2 && conteoVerde >= 2 && conteoRojo >= 2);
 
-        const stream = video.srcObject;
-        if (stream) stream.getTracks().forEach(track => track.stop());
+        if (esElFractalVerdadero) {
+            // ¡ACERTÓ! Mostramos el canvas procesado y aplicamos SOLO un color translúcido encima (tinte verde de éxito)
+            video.style.display = "none";
+            processingCanvas.style.display = "block";
 
-        instrucciones.innerText = mensajeExito;
-        statusDiv.style.color = "#00ffcc";
-        statusDiv.innerText = "Firma geométrica validada correctamente.";
+            // Tinte de color verde translúcido sobre toda la imagen para marcar el acierto
+            ctx.fillStyle = "rgba(0, 255, 100, 0.35)";
+            ctx.fillRect(0, 0, w, h);
 
-        gpsSection.style.display = "block";
-        video.style.display = "none";
-        processingCanvas.style.display = "block";
-
-        let centroX = w / 2;
-        let centroY = h / 2;
-        let tamañoFoto = Math.min(w, h) * 0.45;
-
-        // Superponer foto en Realidad Aumentada
-        const fotoOverlay = new Image();
-        fotoOverlay.src = 'https://picsum.photos/300'; // Puedes reemplazar con tu enlace de foto final
-        fotoOverlay.onload = () => {
-            const xPos = centroX - tamañoFoto / 2;
-            const yPos = centroY - tamañoFoto / 2;
-
-            ctx.drawImage(fotoOverlay, xPos, yPos, tamañoFoto, tamañoFoto);
-
+            // Borde indicador de éxito
             ctx.strokeStyle = "#00ffcc";
-            ctx.lineWidth = 6;
-            ctx.strokeRect(xPos, yPos, tamañoFoto, tamañoFoto);
-        };
-    }
+            ctx.lineWidth = 8;
+            ctx.strokeRect(0, 0, w, h);
 
-    function obtenerGPS() {
-        if ("geolocation" in navigator) {
-            gpsStatusDiv.style.color = "#ffaa00";
-            gpsStatusDiv.innerText = "🛰️ Conectando con los satélites GPS...";
-            
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = position.coords.latitude.toFixed(6);
-                    const lon = position.coords.longitude.toFixed(6);
-                    gpsStatusDiv.style.color = "#00ffcc";
-                    gpsStatusDiv.innerText = `📍 Ubicación Registrada: Lat ${lat}, Lon ${lon}`;
-                },
-                (error) => {
-                    gpsStatusDiv.style.color = "#ff4d4d";
-                    gpsStatusDiv.innerText = "❌ Permiso denegado o señal GPS no disponible.";
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
+            instrucciones.innerText = "¡Código Fractal Áureo Reconocido con Éxito!";
+            statusDiv.style.color = "#00ffcc";
+            statusDiv.innerText = "✔ Coincidencia exacta detectada.";
         } else {
-            gpsStatusDiv.style.color = "#ff4d4d";
-            gpsStatusDiv.innerText = "❌ Tu navegador no soporta geolocalización.";
+            // SI NO LO RECONOCE: Se asegura de seguir mostrando el video en vivo y continúa buscando
+            video.style.display = "block";
+            processingCanvas.style.display = "none";
+
+            instrucciones.innerText = "Apunta la cámara a tu imagen fractal. Si coincide, se teñirá de color automáticamente.";
+            statusDiv.style.color = "#ffaa00";
+            statusDiv.innerText = "⏳ Buscando el Código Fractal Áureo... (Continúa buscando)";
         }
     }
 </script>
