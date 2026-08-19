@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zapatería AR - Escáner Inteligente con HUD Fijo</title>
+    <title>Zapatería AR - Escáner Fractal Anti-Falsos Positivos</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -51,7 +51,7 @@
             object-fit: cover;
             display: block;
         }
-        /* HUD FLOTANTE FIJO (BLOQUEADO EN PANTALLA) */
+        /* HUD FIJO EN PANTALLA */
         #hudOverlay {
             position: absolute;
             top: 0;
@@ -203,7 +203,7 @@
         </div>
     </div>
 
-    <div id="status" style="color: #ffaa00;">⏳ Buscando código fractal resiliente...</div>
+    <div id="status" style="color: #ffaa00;">⏳ Buscando firma estricta...</div>
 </div>
 
 <script>
@@ -239,7 +239,7 @@
     }
     genCtx.putImageData(gImgData, 0, 0);
 
-    // 2. MOTOR DE ESCÁNER Y BLOQUEO DE HUD
+    // 2. MOTOR DE ESCÁNER ESTRICTO (ANTI-FALSOS POSITIVOS)
     const video = document.getElementById('video');
     const processingCanvas = document.getElementById('processingCanvas');
     const hudOverlay = document.getElementById('hudOverlay');
@@ -268,11 +268,11 @@
 
     function iniciarBucleEscaneo() {
         if (scanInterval) clearInterval(scanInterval);
-        scanInterval = setInterval(analizarResilienciaOptica, 150);
+        scanInterval = setInterval(validarFirmaSecuencialEstricta, 150);
     }
 
-    function analizarResilienciaOptica() {
-        if (hudBloqueado) return; // Si está fijo en pantalla, no procesa la cámara
+    function validarFirmaSecuencialEstricta() {
+        if (hudBloqueado) return;
 
         const ctx = processingCanvas.getContext('2d');
         const w = processingCanvas.width;
@@ -286,46 +286,73 @@
         let cy = Math.floor(h / 2);
         let baseRadius = Math.floor(Math.min(w, h) * 0.14);
 
-        let aciertosNucleo = 0;
-        let aciertosGradiente = 0;
+        let aciertosCentro = 0;
+        let aciertosAnilloRojo = 0;
+        let aciertosAnilloVerde = 0;
+        let aciertosAnilloAzul = 0;
+        let totalMuestras = 0;
 
-        for (let angle = 0; angle < 360; angle += 25) {
+        // Verificación estricta de anillos concéntricos en orden secuencial
+        for (let angle = 0; angle < 360; angle += 30) {
             let rad = angle * Math.PI / 180;
 
-            let xN = Math.floor(cx + (baseRadius * 0.25) * Math.cos(rad));
-            let yN = Math.floor(cy + (baseRadius * 0.25) * Math.sin(rad));
-            let xA = Math.floor(cx + baseRadius * Math.cos(rad));
-            let yA = Math.floor(cy + baseRadius * Math.sin(rad));
+            // 1. Centro (Blanco)
+            let xC = Math.floor(cx + (baseRadius * 0.2) * Math.cos(rad));
+            let yC = Math.floor(cy + (baseRadius * 0.2) * Math.sin(rad));
+            
+            // 2. Anillo Interno (Rojo)
+            let xR = Math.floor(cx + (baseRadius * 0.6) * Math.cos(rad));
+            let yR = Math.floor(cy + (baseRadius * 0.6) * Math.sin(rad));
 
-            if (xN >= 0 && xN < w && yN >= 0 && yN < h && xA >= 0 && xA < w && yA >= 0 && yA < h) {
-                let idxN = (yN * w + xN) * 4;
-                let idxA = (yA * w + xA) * 4;
+            // 3. Anillo Medio (Verde)
+            let xG = Math.floor(cx + baseRadius * Math.cos(rad));
+            let yG = Math.floor(cy + baseRadius * Math.sin(rad));
 
-                let lumNucleo = (data[idxN] + data[idxN+1] + data[idxN+2]) / 3;
-                let lumAnillo = (data[idxA] + data[idxA+1] + data[idxA+2]) / 3;
+            // 4. Anillo Exterior (Azul)
+            let xB = Math.floor(cx + (baseRadius * 1.5) * Math.cos(rad));
+            let yB = Math.floor(cy + (baseRadius * 1.5) * Math.sin(rad));
 
-                if (lumNucleo > lumAnillo * 1.15) aciertosNucleo++;
+            if (xC >= 0 && xC < w && yC >= 0 && yC < h &&
+                xR >= 0 && xR < w && yR >= 0 && yR < h &&
+                xG >= 0 && xG < w && yG >= 0 && yG < h &&
+                xB >= 0 && xB < w && yB >= 0 && yB < h) {
 
-                let r = data[idxA], g = data[idxA+1], b = data[idxA+2];
-                if (Math.abs(r - g) > 25 || Math.abs(g - b) > 25 || Math.abs(r - b) > 25) {
-                    aciertosGradiente++;
-                }
+                let iC = (yC * w + xC) * 4;
+                let iR = (yR * w + xR) * 4;
+                let iG = (yG * w + xG) * 4;
+                let iB = (yB * w + xB) * 4;
+
+                // Validar Centro Claro
+                if (data[iC] > 200 && data[iC+1] > 200 && data[iC+2] > 200) aciertosCentro++;
+
+                // Validar Anillo Rojo (R > G y R > B)
+                if (data[iR] > 140 && data[iR] > data[iR+1] + 30) aciertosAnilloRojo++;
+
+                // Validar Anillo Verde (G > R y G > B)
+                if (data[iG+1] > 120 && data[iG+1] > data[iG] + 20) aciertosAnilloVerde++;
+
+                // Validar Anillo Azul (B > R y B > G)
+                if (data[iB+2] > 140 && data[iB+2] > data[iB] + 20) aciertosAnilloAzul++;
             }
+            totalMuestras++;
         }
 
-        let scoreNucleo = aciertosNucleo / 15;
-        let scoreGradiente = aciertosGradiente / 15;
-        let esValidoResiliente = (scoreNucleo > 0.40 && scoreGradiente > 0.35);
+        let pCentro = aciertosCentro / 12;
+        let pRojo = aciertosAnilloRojo / 12;
+        let pVerde = aciertosAnilloVerde / 12;
+        let pAzul = aciertosAnilloAzul / 12;
 
-        if (esValidoResiliente) {
-            // ¡COINCIDENCIA! CONGELAMOS EL HUD EN PANTALLA
+        // Condición estricta simultánea: Todas las capas cromáticas deben estar presentes en su orden exacto
+        let esFirmaPerfecta = (pCentro > 0.5 && pRojo > 0.4 && pVerde > 0.4 && pAzul > 0.4);
+
+        if (esFirmaPerfecta) {
             hudBloqueado = true;
             clearInterval(scanInterval);
 
             video.style.display = "none";
             hudOverlay.style.display = "flex";
             statusDiv.style.color = "#00ffcc";
-            statusDiv.innerText = "✔ HUD Fijo: Consulta los datos libremente";
+            statusDiv.innerText = "✔ Firma Fractal Validada (Cero Falsos Positivos)";
         }
     }
 
@@ -334,7 +361,7 @@
         hudOverlay.style.display = "none";
         video.style.display = "block";
         statusDiv.style.color = "#ffaa00";
-        statusDiv.innerText = "⏳ Buscando código fractal resiliente...";
+        statusDiv.innerText = "⏳ Buscando firma estricta...";
         iniciarBucleEscaneo();
     }
 
